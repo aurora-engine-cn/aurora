@@ -2,7 +2,7 @@ package aurora
 
 import (
 	"errors"
-	"github.com/aurora-go/aurora/utils"
+	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"log"
