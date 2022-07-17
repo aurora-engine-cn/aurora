@@ -2,7 +2,7 @@ package example_test
 
 import (
 	"fmt"
-	"github.com/aurora-go/aurora"
+	"gitee.com/aurora-engine/aurora"
 	"log"
 	"math/rand"
 	"net/http"
