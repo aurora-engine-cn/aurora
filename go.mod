@@ -1,4 +1,4 @@
-module github.com/aurora-go/aurora
+module gitee.com/aurora-engine/aurora
 
 go 1.16
 
