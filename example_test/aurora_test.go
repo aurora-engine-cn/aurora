@@ -29,7 +29,7 @@ func TestAurora(t *testing.T) {
 	a := aurora.NewAurora()
 	/// 注册一个系统变量，类型为 *Ccc
 	a.SysVariable(&Ccc{}, func(proxy *aurora.Proxy) interface{} {
-		c := &Ccc{"test"}
+		c := &Aaa{Name: "test"}
 		return c
 	})
 	a.Get("/", func(ccc *Ccc, req *http.Request) {

@@ -179,6 +179,11 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 		var err error
 		if vr, b := c.p.Aurora.intrinsic[v]; b {
 			prama := vr(c.p)
+			pv := reflect.ValueOf(prama)
+			if !pv.Type().AssignableTo(c.InvokeValues[i].Type()) {
+				panic("The required type is'" + c.InvokeValues[i].Type().String() + "' The provided type is '" + pv.Type().String() + "'" +
+					",Custom system parameter initialization error, please check whether the type returned by the constructor matches the type required by the processor")
+			}
 			c.InvokeValues[i] = reflect.ValueOf(prama)
 			continue
 		}
