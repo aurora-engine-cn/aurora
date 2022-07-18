@@ -1,9 +1,7 @@
 # Aurora Web Framework
 
-[![Stars](https://img.shields.io/github/stars/aurora-go/aurora)](https://gitee.com/aurora-engine/aurora)
-[![Go Version](https://img.shields.io/badge/go1.16-version-orange)](https://golang.google.cn/)
 [![Go Report Card](https://goreportcard.com/badge/gitee.com/aurora-engine/aurora)](https://goreportcard.com/report/gitee.com/aurora-engine/aurora)
-[![License](https://img.shields.io/gitee.com/aurora-engine/aurora)](https://gitee.com/aurora-engine/aurora/blob/future/LICENSE)
+[![License](https://img.shields.io/badge/license-apache--2.0-blue)](https://gitee.com/aurora-engine/aurora/blob/master/LICENSE)
 <br>
 
 Aurora 是用 Go(Golang) 编写的 Web 框架 ,将是 Golang 自诞生以来最好用的 Web 开发生产工具。路由处理灵活，集中式依赖管理，让项目代码结构更加优雅，专注于业务编码。

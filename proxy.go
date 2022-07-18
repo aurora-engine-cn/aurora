@@ -3,6 +3,7 @@ package aurora
 import (
 	"bytes"
 	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"log"
 	"net/http"
 	"reflect"
@@ -34,7 +35,19 @@ func (sp *Proxy) start() []reflect.Value {
 	defer func(a *Proxy) {
 		rew := sp.Rew
 		if v := recover(); v != nil {
-			msg := v.(error).Error()
+			var msg string
+			switch v.(type) {
+			case error:
+				msg = v.(error).Error()
+			case string:
+				msg = v.(string)
+			default:
+				marshal, err := jsoniter.Marshal(v)
+				if err != nil {
+					msg = err.Error()
+				}
+				msg = string(marshal)
+			}
 			sp.Error(msg)
 			http.Error(rew, msg, 500)
 			return
