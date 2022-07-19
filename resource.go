@@ -59,7 +59,7 @@ func (a *Aurora) resourceFun(w http.ResponseWriter, mapping string, path string,
 		return
 	}
 	w.Header().Set(contentType, a.resourceMapType[".json"])
-	http.Error(w, newErrorResponse(mapping, "服务器静态资源不存在", 500), 500)
+	http.Error(w, "Server static resource does not exist", 500)
 }
 
 // SendResource 发送静态资源

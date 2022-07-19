@@ -1,45 +1,33 @@
 package aurora
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"log"
+	"net/http"
 	"reflect"
-	"time"
 )
 
-/*
-	错误处理
-*/
-
-type ErrorResponse struct {
-	UrlPath      string `json:"url"`
-	Status       int    `json:"code"`
-	ErrorMessage string `json:"error"`
-	Time         string `json:"time"`
-}
-
-func newErrorResponse(path, message string, status int) string {
-	now := time.Now().Format("2006/01/02 15:04:05")
-	msg := ErrorResponse{
-		UrlPath:      path,
-		Status:       status,
-		ErrorMessage: message,
-		Time:         now,
+// Aurora 全局错误 panic 处理
+func errRecover(proxy *Proxy) {
+	rew := proxy.Rew
+	if v := recover(); v != nil {
+		var msg string
+		switch v.(type) {
+		case error:
+			msg = v.(error).Error()
+		case string:
+			msg = v.(string)
+		default:
+			marshal, err := jsoniter.Marshal(v)
+			if err != nil {
+				msg = err.Error()
+			}
+			msg = string(marshal)
+		}
+		proxy.Error(msg)
+		http.Error(rew, msg, 500)
+		return
 	}
-	marshal, err := json.Marshal(msg)
-	if err != nil {
-		panic(err)
-	}
-	return string(marshal)
-}
-
-// ArgsAnalysisError 参数解析错误
-type ArgsAnalysisError struct {
-	s string
-}
-
-func (a ArgsAnalysisError) Error() string {
-	return a.s
 }
 
 // Error 错误类型  类型设计 是一个函数 接收一个 实现了 error 接口的参数

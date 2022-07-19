@@ -6,7 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	strings "strings"
+	"strings"
 	"testing"
 	"time"
 )

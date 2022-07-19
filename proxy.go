@@ -3,7 +3,6 @@ package aurora
 import (
 	"bytes"
 	"encoding/json"
-	jsoniter "github.com/json-iterator/go"
 	"log"
 	"net/http"
 	"reflect"
@@ -32,28 +31,7 @@ type Proxy struct {
 // start 路由查询入口
 func (sp *Proxy) start() []reflect.Value {
 	//defer 处理在执行接口期间的一切 panic处理
-	defer func(a *Proxy) {
-		rew := sp.Rew
-		if v := recover(); v != nil {
-			var msg string
-			switch v.(type) {
-			case error:
-				msg = v.(error).Error()
-			case string:
-				msg = v.(string)
-			default:
-				marshal, err := jsoniter.Marshal(v)
-				if err != nil {
-					msg = err.Error()
-				}
-				msg = string(marshal)
-			}
-			sp.Error(msg)
-			http.Error(rew, msg, 500)
-			return
-		}
-	}(sp)
-
+	defer errRecover(sp)
 	//存储error类型 用于catch捕捉
 	ef := reflect.TypeOf(new(error)).Elem()
 	sp.errType = ef
