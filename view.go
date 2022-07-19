@@ -20,17 +20,10 @@ func (a *Aurora) viewHandle(v views) {
 // html: 需要被处理的静态资源绝对路径信息
 // data: 是一个可传递的数据
 func (a *Aurora) view(html string, rew http.ResponseWriter, data interface{}) {
-
 	parseFiles, err := template.ParseFiles(html)
-	if err != nil {
-		a.Error(err.Error())
-		return
-	}
+	ErrorMsg(err)
 	err = parseFiles.Execute(rew, data)
-	if err != nil {
-		a.Error(err.Error())
-		return
-	}
+	ErrorMsg(err)
 }
 
 // baseContext 初始化 Aurora 顶级上下文

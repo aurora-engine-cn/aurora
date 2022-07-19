@@ -116,10 +116,8 @@ func (r *route) addRoute(method, path string, control Controller, middleware ...
 	path = urlCheck(path)
 	path = urlHead(path)
 	path = urlEnd(path)
-	if err := checkRESTFul(path); err != nil {
-		r.Error(err.Error())
-		return
-	}
+	err := checkRESTFul(path)
+	ErrorMsg(err)
 	//校验处理函数的正确性，只能注册函数，不能注册结构体，接口，基本类型等数据
 	vt := reflect.TypeOf(control)
 	if vt.Kind() != reflect.Func {

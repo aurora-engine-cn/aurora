@@ -67,9 +67,7 @@ func (c Ctx) initQueryCache() {
 		if _, b := c[auroraFormCache]; !b {
 			size := c[auroraMaxMultipartMemory].(int64)
 			err := req.ParseMultipartForm(size)
-			if err != nil {
-				return
-			}
+			ErrorMsg(err)
 			c[auroraFormCache] = req.PostForm
 		}
 	}

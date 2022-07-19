@@ -1,10 +1,12 @@
 package aurora
 
 import (
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"log"
 	"net/http"
 	"reflect"
+	"strings"
 )
 
 // Aurora 全局错误 panic 处理
@@ -27,6 +29,16 @@ func errRecover(proxy *Proxy) {
 		proxy.Error(msg)
 		http.Error(rew, msg, 500)
 		return
+	}
+}
+
+func ErrorMsg(err error, msg ...string) {
+	if err != nil {
+		if msg == nil {
+			msg = []string{"Error"}
+		}
+		emsg := fmt.Errorf("%s : %s", strings.Join(msg, ""), err.Error())
+		panic(emsg)
 	}
 }
 

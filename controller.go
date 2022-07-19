@@ -189,9 +189,7 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 		}
 		if request.Method != http.MethodGet {
 			err = json.Unmarshal([]byte(v), &data)
-			if err != nil {
-				panic("The json parameter decoding failed, please check whether the json data format is correct.error:" + err.Error())
-			}
+			ErrorMsg(err, "The json parameter decoding failed, please check whether the json data format is correct.error:")
 		} else {
 			switch c.InvokeValues[i].Kind() {
 			case reflect.Map, reflect.Struct, reflect.Interface, reflect.Ptr:
@@ -222,9 +220,7 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 			}
 		}
 		err = utils.StarAssignment(c.InvokeValues[i], data)
-		if err != nil {
-			panic(err)
-		}
+		ErrorMsg(err)
 	}
 
 }
@@ -289,9 +285,7 @@ func postRequest(request *http.Request, c *controller) []string {
 // Control 初始化装配结构体依赖 control 参数必须是指针
 func (a *Aurora) control(control Controller) {
 	value, err := checkControl(control)
-	if err != nil {
-		a.Panic(err)
-	}
+	ErrorMsg(err)
 	if a.controllers == nil {
 		a.controllers = make([]*reflect.Value, 0)
 	}
@@ -299,9 +293,7 @@ func (a *Aurora) control(control Controller) {
 	// 把处理器注册进 ioc , 默认为类型名称
 	tf := reflect.TypeOf(control)
 	err = a.component.putIn(tf.String(), control)
-	if err != nil {
-		a.Panic(err)
-	}
+	ErrorMsg(err)
 }
 
 // checkControl 校验处理器的规范形式
@@ -337,44 +329,6 @@ func (a *Aurora) dependencyInjection() {
 		}
 		for j := 0; j < control.NumField(); j++ {
 			field := control.Type().Field(j)
-			//t := field.Type.Kind()
-			//if t == reflect.Ptr {
-			//	t = field.Type.Elem().Kind()
-			//}
-			//if t != reflect.Struct {
-			//	continue
-			//}
-			//查找结构体字段的tag 找到 ref属性并初始化 Get 兼容1.16
-			//if r, b := field.Tag.Lookup(ref); b {
-			//	//if r == "" {
-			//	//	//暂时选择警告的方式
-			//	//	a.Warn("ref tag value is ''")
-			//	//	continue
-			//	//}
-			//	//校验字段是否可操作 兼容1.16 注释掉 检查字段操作
-			//	//if !field.IsExported() {
-			//	//	a.Panic(control.Type().String(), " '", field.Name, "' field .Not an exported field, ref attribute injection failed")
-			//	//}
-			//	value := a.component.get(r)
-			//	if value == nil {
-			//		//若是 容器中未找到 ref 则初始化失败 结束程序
-			//		a.Panic("not found ref: " + r)
-			//	}
-			//	//容器中找到了 ref 属性的 参数，把该参数赋值给 给定的处理器字段
-			//	if err := utils.Injection(control.Field(j), *value); err != nil {
-			//		//初始化赋值阶段错误
-			//		a.Panic(err.Error())
-			//	}
-			//} else {
-			//	//尝试获取 同类型的依赖
-			//	value := a.component.get(control.Field(j).Type().String())
-			//	if value != nil {
-			//		if err := utils.Injection(control.Field(j), *value); err != nil {
-			//			//初始化赋值阶段错误
-			//			a.Panic(err.Error())
-			//		}
-			//	}
-			//}
 			//查询 value 属性 读取config中的基本属性
 			if v, b := field.Tag.Lookup("value"); b {
 				if v == "" {
@@ -388,9 +342,7 @@ func (a *Aurora) dependencyInjection() {
 				}
 				//把查询到的 value 初始化给指定字段
 				err := utils.StarAssignment(control.Field(j), get)
-				if err != nil {
-					a.Panic(err.Error())
-				}
+				ErrorMsg(err)
 			}
 		}
 	}

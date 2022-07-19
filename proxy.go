@@ -3,7 +3,6 @@ package aurora
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -133,10 +132,7 @@ func (sp *Proxy) resultHandler() {
 				return
 			}
 			marshal, err := json.Marshal(v)
-			if err != nil {
-				log.Println(err.Error())
-				return
-			}
+			ErrorMsg(err)
 			sp.Rew.Write(marshal)
 		case reflect.Interface:
 			//判断接口是否实现了 error 返回接口的类型，绝大部分应该是错误接口
@@ -153,10 +149,7 @@ func (sp *Proxy) resultHandler() {
 					marshal = []byte(v.(string))
 				default:
 					s, err := json.Marshal(v)
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
+					ErrorMsg(err)
 					marshal = s
 				}
 				sp.Rew.Write(marshal)
