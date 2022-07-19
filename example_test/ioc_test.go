@@ -26,10 +26,7 @@ func TestIoc(t *testing.T) {
 	a.Use(&Aaa{Name: "Aaa", Bbb: &Bbb{Name: "Bbb"}})
 	a.Use(aurora.Component{"a": Ccc{Name: "ccc"}})
 	a.Url("/", &TestServer{}, Before)
-	err := aurora.Run(a)
-	if err != nil {
-		fmt.Println(err)
-	}
+	aurora.Run(a)
 }
 
 type TestServer struct {

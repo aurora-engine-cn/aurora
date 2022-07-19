@@ -6,7 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	strings "strings"
+	"strings"
 	"testing"
 	"time"
 )
@@ -35,6 +35,7 @@ func TestAurora(t *testing.T) {
 	a.Get("/", func(ccc *Ccc, req *http.Request) {
 		fmt.Println(ccc)
 	})
+	a.Get("/s", Ccc{})
 	aurora.Run(a)
 }
 
