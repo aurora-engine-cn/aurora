@@ -30,8 +30,6 @@ type controlInfo struct {
 
 type controller struct {
 	*Aurora
-	//解析的文件部分
-	File *MultipartFile
 	//上下文数据
 	ctx Ctx
 	p   *Proxy
