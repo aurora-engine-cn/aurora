@@ -42,18 +42,7 @@ func (sp *Proxy) start() []reflect.Value {
 	// 请求参数解析
 	c.analysisInput(sp.Req, sp.Rew, sp.Ctx)
 	//执行中间件
-	middlewares := sp.Aurora.router.middleware
-	if middlewares != nil {
-		for _, middleware := range middlewares {
-			if middleware == nil {
-				continue
-			}
-			if f := middleware(sp.Ctx); !f {
-				goto end
-			}
-		}
-	}
-	middlewares = sp.middleware
+	middlewares := sp.middleware
 	for _, middleware := range middlewares {
 		if b := middleware(sp.Ctx); !b {
 			goto end

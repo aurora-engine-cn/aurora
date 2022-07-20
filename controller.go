@@ -30,8 +30,6 @@ type controlInfo struct {
 
 type controller struct {
 	*Aurora
-	//解析的文件部分
-	File *MultipartFile
 	//上下文数据
 	ctx Ctx
 	p   *Proxy
@@ -254,7 +252,7 @@ func postRequest(request *http.Request, c *controller) []string {
 	if form != nil {
 		if form.File != nil {
 			//封装解析好的 文件部分
-			c.File = &MultipartFile{File: form.File}
+			c.p.File = &MultipartFile{File: form.File}
 		}
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式
