@@ -434,6 +434,19 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 	if r.isStatic(path, rw, req) {
 		return nil, nil, nil, nil
 	}
+
+	// 全局中间件
+	middlewares := r.middleware
+	if middlewares != nil {
+		for _, middleware := range middlewares {
+			if middleware == nil {
+				continue
+			}
+			if f := middleware(ctx); !f {
+				return nil, nil, nil, nil
+			}
+		}
+	}
 	//查找指定的Method树
 	if _, ok := r.tree[method]; !ok {
 		http.NotFound(rw, req)
