@@ -168,3 +168,7 @@ func (a *Aurora) Run() error {
 	}
 	return a.server.Serve(l) //启动服务器
 }
+
+func (a *Aurora) Root() string {
+	return a.projectRoot
+}

@@ -3,7 +3,6 @@ package aurora
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -31,16 +30,7 @@ type Proxy struct {
 // start 路由查询入口
 func (sp *Proxy) start() []reflect.Value {
 	//defer 处理在执行接口期间的一切 panic处理
-	defer func(a *Proxy) {
-		rew := sp.Rew
-		if v := recover(); v != nil {
-			msg := v.(error).Error()
-			sp.Error(msg)
-			http.Error(rew, msg, 500)
-			return
-		}
-	}(sp)
-
+	defer errRecover(sp)
 	//存储error类型 用于catch捕捉
 	ef := reflect.TypeOf(new(error)).Elem()
 	sp.errType = ef
@@ -52,18 +42,7 @@ func (sp *Proxy) start() []reflect.Value {
 	// 请求参数解析
 	c.analysisInput(sp.Req, sp.Rew, sp.Ctx)
 	//执行中间件
-	middlewares := sp.Aurora.router.middleware
-	if middlewares != nil {
-		for _, middleware := range middlewares {
-			if middleware == nil {
-				continue
-			}
-			if f := middleware(sp.Ctx); !f {
-				goto end
-			}
-		}
-	}
-	middlewares = sp.middleware
+	middlewares := sp.middleware
 	for _, middleware := range middlewares {
 		if b := middleware(sp.Ctx); !b {
 			goto end
@@ -142,10 +121,7 @@ func (sp *Proxy) resultHandler() {
 				return
 			}
 			marshal, err := json.Marshal(v)
-			if err != nil {
-				log.Println(err.Error())
-				return
-			}
+			ErrorMsg(err)
 			sp.Rew.Write(marshal)
 		case reflect.Interface:
 			//判断接口是否实现了 error 返回接口的类型，绝大部分应该是错误接口
@@ -162,10 +138,7 @@ func (sp *Proxy) resultHandler() {
 					marshal = []byte(v.(string))
 				default:
 					s, err := json.Marshal(v)
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
+					ErrorMsg(err)
 					marshal = s
 				}
 				sp.Rew.Write(marshal)

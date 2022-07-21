@@ -2,7 +2,6 @@ package aurora
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/spf13/viper"
 	"io/fs"
 	"io/ioutil"
@@ -59,7 +58,7 @@ func (a *Aurora) resourceFun(w http.ResponseWriter, mapping string, path string,
 		return
 	}
 	w.Header().Set(contentType, a.resourceMapType[".json"])
-	http.Error(w, newErrorResponse(mapping, "服务器静态资源不存在", 500), 500)
+	http.Error(w, "Server static resource does not exist", 500)
 }
 
 // SendResource 发送静态资源
@@ -68,10 +67,7 @@ func sendResource(w http.ResponseWriter, data []byte) {
 		return
 	}
 	_, err := w.Write(data)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	ErrorMsg(err)
 }
 
 // readResource 读取成功则返回结果，失败则返回nil
@@ -138,10 +134,7 @@ func (a *Aurora) loadResourceHead() {
 	v.SetConfigType("json")
 	//读取 static 的配置串 见方法下面的全局变量
 	err := v.ReadConfig(bytes.NewBuffer(static))
-	if err != nil {
-		a.Error("failed to import static resource header information requested by the server")
-		os.Exit(1)
-	}
+	ErrorMsg(err, "failed to import static resource header information requested by the server")
 	s := v.GetStringMapString("type")
 	a.resourceMapType = s
 }

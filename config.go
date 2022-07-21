@@ -131,10 +131,7 @@ func (a *Aurora) viperConfig() {
 			}
 			return nil
 		})
-		if err != nil {
-			a.Panic("configuration file retrieval failed, initial configuration failed")
-			return
-		}
+		ErrorMsg(err, "configuration file retrieval failed, initial configuration failed")
 	} else {
 		ConfigPath = a.configpath
 	}
@@ -149,9 +146,7 @@ func (a *Aurora) viperConfig() {
 		}
 		cnf.SetConfigFile(ConfigPath)
 		err := cnf.ReadInConfig()
-		if err != nil {
-			a.Panic(err.Error()) //配置文件加载出错将结束程序
-		}
+		ErrorMsg(err)
 		a.config = cnf
 	}
 
