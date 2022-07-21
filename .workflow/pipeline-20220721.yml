@@ -30,7 +30,7 @@ stages:
         artifacts:
           - name: BUILD_ARTIFACT
             path:
-              - ./output
+              - ./
         caches:
           - /go/pkg/mod
         notify: []
