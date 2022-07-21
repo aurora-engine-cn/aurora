@@ -21,6 +21,7 @@ stages:
         commands:
           - cd app
           - mkdir output
+          - go env -w  GOPROXY="https://goproxy.cn,direct"
           - go build -o output/main main.go
           - chmod +X output/main
           - ./output/main
