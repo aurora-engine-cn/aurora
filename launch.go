@@ -5,9 +5,10 @@ type Application interface {
 	Run() error
 }
 
-func Run(app Application) error {
+func Run(app Application) {
 	app.Use(app)
-	return app.Run()
+	err := app.Run()
+	ErrorMsg(err)
 }
 
 // Use 提供一个全局的注册器，把参数 components 加载到 Aurora实例中

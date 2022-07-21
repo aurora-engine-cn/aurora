@@ -1,0 +1,69 @@
+version: '1.0'
+name: pipeline-20220721
+displayName: push
+triggers:
+  trigger: auto
+  push:
+    branches:
+      precise:
+        - master
+stages:
+  - name: stage-06098125
+    displayName: 检查代码构建运行
+    strategy: naturally
+    trigger: auto
+    executor: []
+    steps:
+      - step: build@golang
+        name: build_golang
+        displayName: Golang 构建
+        golangVersion: '1.16'
+        commands:
+          - cd app
+          - mkdir output
+          - go env -w  GOPROXY="https://goproxy.cn,direct"
+          - go build -o output/main main.go
+          - chmod +X output/main
+          - ./output/main
+        caches:
+          - /go/pkg/mod
+        notify: []
+        strategy:
+          retry: '0'
+          expression: []
+  - name: stage-f1755b4c
+    displayName: 管理员审核
+    strategy: naturally
+    trigger: auto
+    executor: []
+    steps:
+      - step: tool@review
+        name: tool_review
+        displayName: 人工卡点
+        reviewer:
+          - aurora-engines
+        notify: []
+        strategy:
+          retry: '0'
+  - name: stage-054f5ac5
+    displayName: 审核通过自动发布版本
+    strategy: naturally
+    trigger: auto
+    executor:
+      - aurora-engines
+    steps:
+      - step: publish@release_artifacts
+        name: publish_release_artifacts
+        displayName: 发布
+        dependArtifact: output
+        version: 1.0.5.1
+        autoIncrement: true
+        notify: []
+        strategy:
+          retry: '0'
+strategy:
+  blocking: true
+permissions:
+  - role: admin
+    members:
+      - aurora-engines
