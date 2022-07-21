@@ -32,6 +32,10 @@ func main() {
 
 [document](https://aurora-go.github.io)
 
+## 项目案例参考
+[community 仓库](https://gitee.com/aurora-engine/community)
+
+
 ## about the author
 
 **作者:** Awen
