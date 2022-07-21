@@ -35,7 +35,7 @@ stages:
           - /go/pkg/mod
         notify: []
         strategy:
-          retry: '5'
+          retry: '0'
           expression: []
 strategy:
   blocking: true
