@@ -42,7 +42,7 @@ func TestAurora(t *testing.T) {
 // TestGet Get请求测试
 func TestGet(t *testing.T) {
 	a := aurora.NewAurora()
-	a.Get("/", func(r *http.Request, ctx aurora.Ctx) {
+	a.Get("/", func(a string) {
 
 	})
 	aurora.Run(a)
