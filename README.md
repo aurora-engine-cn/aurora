@@ -1,5 +1,6 @@
 # Aurora Web Framework
 
+[![star](https://gitee.com/aurora-engine/aurora/badge/star.svg?theme=dark)](https://gitee.com/aurora-engine/aurora/stargazers)
 [![Go Report Card](https://goreportcard.com/badge/gitee.com/aurora-engine/aurora)](https://goreportcard.com/report/gitee.com/aurora-engine/aurora)
 [![License](https://img.shields.io/badge/license-apache--2.0-blue)](https://gitee.com/aurora-engine/aurora/blob/master/LICENSE)
 <br>
