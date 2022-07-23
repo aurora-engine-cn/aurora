@@ -71,6 +71,8 @@ func (a *Aurora) componentInit() error {
 			}
 			a.resource = p
 		}
+		p = a.config.GetString("aurora.server.file")
+		a.fileService = p
 		a.Log.Info(fmt.Sprintf("server static resource root directory:%1s", a.resource))
 		name := a.config.GetString("aurora.application.name")
 		if name != "" {

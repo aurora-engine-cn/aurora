@@ -434,7 +434,9 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 	if r.isStatic(path, rw, req) {
 		return nil, nil, nil, nil
 	}
-
+	if index := strings.Index(path, "."); index != -1 {
+		path = r.fileService
+	}
 	// 全局中间件
 	middlewares := r.middleware
 	if middlewares != nil {
@@ -630,6 +632,10 @@ func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{})
 func (r *route) isStatic(path string, rw http.ResponseWriter, req *http.Request) bool {
 	mapping := path
 	if index := strings.LastIndex(req.URL.Path, "."); index != -1 { //此处判断这个请求可能为静态资源处理
+		// 文件服务器校验
+		if strings.HasPrefix(path, r.fileService) {
+			return false
+		}
 		t := req.URL.Path[index:] //截取可能的资源类型
 		r.resourceHandler(rw, req, mapping, t)
 		return true

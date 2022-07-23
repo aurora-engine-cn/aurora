@@ -32,8 +32,13 @@ type Aurora struct {
 	router *route
 	// 项目根路径
 	projectRoot string
+
 	// 静态资源管理 默认为 root 目录
 	resource string
+
+	// 静态文件服务器接口
+	fileService string
+
 	// 常用的静态资源头
 	resourceMapType ContentType
 
