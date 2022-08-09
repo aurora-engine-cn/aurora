@@ -153,9 +153,26 @@ func TestHttp(t *testing.T) {
 	fmt.Println("成功访问了:", count, "个接口,一共 ", len(api), " 个接口")
 }
 
+/*type T interface {
+	~int | ~float64 | ~bool | ~string
+}
+
+type List[t T] struct {
+	Arr []t
+}
+
+func (a *List[t]) add(value t) {
+	if a.Arr == nil {
+		a.Arr = make([]t, 0)
+	}
+	a.Arr = append(a.Arr, value)
+}*/
+
 // TestRESTFul 动态路由测试
 func TestRESTFul(t *testing.T) {
 	a := aurora.NewAurora()
-
+	/*a.Post("/test", func(array List[string]) {
+		fmt.Println(array)
+	})*/
 	aurora.Run(a)
 }
