@@ -3,6 +3,7 @@ package aurora
 import (
 	"bytes"
 	"context"
+	"gitee.com/aurora-engine/aurora/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"net"
@@ -193,6 +194,39 @@ func (a *Aurora) Run() error {
 	match := a.mux.Match(cmux.Any())
 	go a.server.Serve(match)
 	return a.mux.Serve()
+}
+
+// dependencyInjection Control 依赖加载
+func (a *Aurora) dependencyInjection() {
+	if a.controllers == nil {
+		return
+	}
+	a.Info("Initialize load controller dependencies")
+	l := len(a.controllers)
+	for i := 0; i < l; i++ {
+		control := *a.controllers[i]
+		if control.Kind() == reflect.Ptr {
+			control = control.Elem()
+		}
+		for j := 0; j < control.NumField(); j++ {
+			field := control.Type().Field(j)
+			//查询 value 属性 读取config中的基本属性
+			if v, b := field.Tag.Lookup("value"); b {
+				if v == "" {
+					a.Warn("value tag value is ''")
+					continue
+				}
+				get := a.config.Get(v)
+				if get == nil {
+					//如果查找结果大小等于0 则表示不存在
+					continue
+				}
+				//把查询到的 value 初始化给指定字段
+				err := utils.StarAssignment(control.Field(j), get)
+				ErrorMsg(err)
+			}
+		}
+	}
 }
 
 func (a *Aurora) Root() string {

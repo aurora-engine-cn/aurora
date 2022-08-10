@@ -11,13 +11,10 @@ import (
 type Component map[string]interface{}
 
 func (a *Aurora) componentInit() error {
-	//加载uses配置项
-	if a.options != nil {
-		for _, useOption := range a.options {
-			useOption(a)
-		}
-	}
+	//初始化基本属性
+	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 
+	a.Info("Initialize the built-in system request parameters")
 	// 初始化系统参数
 	if a.intrinsic == nil {
 		a.intrinsic = make(map[string]Constructor)
@@ -27,10 +24,14 @@ func (a *Aurora) componentInit() error {
 	a.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
 	a.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
 
-	//初始化基本属性
-	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 	a.loadResourceHead() //加载静态资源头
-
+	a.Info("start component-dependent assembly")
+	//加载uses配置项
+	if a.options != nil {
+		for _, useOption := range a.options {
+			useOption(a)
+		}
+	}
 	//加载 注册的依赖到 初级缓存
 	if a.components != nil {
 		for _, component := range a.components {
@@ -38,6 +39,7 @@ func (a *Aurora) componentInit() error {
 				if err := a.component.putIn(k, v); err != nil {
 					return err
 				}
+				a.Info("")
 			}
 		}
 	}
