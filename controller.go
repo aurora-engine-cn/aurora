@@ -2,12 +2,14 @@ package aurora
 
 import (
 	"errors"
+	"fmt"
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -120,12 +122,17 @@ func checkArguments(s reflect.Value) bool {
 // invoke 接口调用
 func (c *controller) invoke() []reflect.Value {
 	//before
+	// 结构体参数约束校验
+	err := c.checkConstrain()
+	if err != nil {
+		return []reflect.Value{reflect.ValueOf(err)}
+	}
 	r := c.Fun.Call(c.InvokeValues)
 	//after
 	return r
 }
 
-//入参解析
+// 入参解析
 func (c *controller) analysisInput(request *http.Request, response http.ResponseWriter, ctx Ctx) {
 	// var values []string 用于接收 参数列表，该列表顺序规则为(rest full URL参数永远放在最前):
 	// values:   [rest ful路径参数,GET 请求参数,POST请求体参数]
@@ -292,6 +299,7 @@ func (a *Aurora) control(control Controller) {
 	tf := reflect.TypeOf(control)
 	err = a.component.putIn(tf.String(), control)
 	ErrorMsg(err)
+	a.Info(tf.String() + " initialization joins ioc container management")
 }
 
 // checkControl 校验处理器的规范形式
@@ -312,36 +320,38 @@ func checkControl(control Controller) (*reflect.Value, error) {
 	return &v, nil
 }
 
-const ref = "ref"
-
-// dependencyInjection Control 依赖加载
-func (a *Aurora) dependencyInjection() {
-	if a.controllers == nil {
-		return
-	}
-	l := len(a.controllers)
-	for i := 0; i < l; i++ {
-		control := *a.controllers[i]
-		if control.Kind() == reflect.Ptr {
-			control = control.Elem()
+// 检查结构体参数中的约束是否满足对应检查
+func (c *controller) checkConstrain() error {
+	for i := 0; i < len(c.InvokeValues); i++ {
+		if ok, err := check(c.InvokeValues[i]); !ok {
+			return fmt.Errorf("'%s.%s' constraint check failed", c.InvokeValues[i].Type().String(), err.Error())
 		}
-		for j := 0; j < control.NumField(); j++ {
-			field := control.Type().Field(j)
-			//查询 value 属性 读取config中的基本属性
-			if v, b := field.Tag.Lookup("value"); b {
-				if v == "" {
-					a.Warn("value tag value is ''")
-					continue
+	}
+	return nil
+}
+
+func check(value reflect.Value) (bool, error) {
+	if value.Kind() == reflect.Ptr {
+		return check(value.Elem())
+	}
+	if value.Kind() == reflect.Struct {
+		// 校验各个 字段的 tar
+		fields := value.NumField()
+		for i := 0; i < fields; i++ {
+			field := value.Type().Field(i)
+			tag := field.Tag
+
+			// 检查 empty 空值校验
+			empty := tag.Get("empty")
+			if empty != "" {
+				parseBool, err := strconv.ParseBool(empty)
+				ErrorMsg(err, "tag:empty '"+empty+"' value could not be parsed")
+				if value.Field(i).IsZero() && !parseBool {
+					// 校验不通过
+					return false, fmt.Errorf("%s", field.Name)
 				}
-				get := a.config.Get(v)
-				if get == nil {
-					//如果查找结果大小等于0 则表示不存在
-					continue
-				}
-				//把查询到的 value 初始化给指定字段
-				err := utils.StarAssignment(control.Field(j), get)
-				ErrorMsg(err)
 			}
 		}
 	}
+	return true, nil
 }
