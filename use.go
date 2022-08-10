@@ -1,6 +1,7 @@
 package aurora
 
 import (
+	"github.com/soheilhy/cmux"
 	"net/http"
 )
 
@@ -84,5 +85,11 @@ func useConfig(component interface{}) UseOption {
 		if config, b := component.(Config); b {
 			a.config = config
 		}
+	}
+}
+
+func useCMux(component interface{}) UseOption {
+	return func(a *Aurora) {
+		a.mux = component.(cmux.CMux)
 	}
 }

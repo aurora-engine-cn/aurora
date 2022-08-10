@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/sirupsen/logrus"
+	"github.com/soheilhy/cmux"
 	"net"
 	"net/http"
 	"os"
@@ -69,9 +70,13 @@ type Aurora struct {
 	// go web 原生服务器
 	server *http.Server
 	ln     net.Listener // web服务器监听,启动服务器时候初始化 <+++>  计划 使用 多路复用器
+
+	//多路复用器
+	mux cmux.CMux
 }
 
 func NewAurora(option ...Option) *Aurora {
+
 	//初始化日志
 	logs := logrus.New()
 	logs.SetFormatter(&Formatter{})
@@ -115,6 +120,11 @@ func NewAurora(option ...Option) *Aurora {
 	a.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
 	// server
 	a.use[reflect.TypeOf(&http.Server{})] = useServe
+
+	// 多路复用器
+	mux := new(cmux.CMux)
+	a.use[reflect.TypeOf(mux).Elem()] = useCMux
+
 	a.viperConfig()
 	return a
 }
@@ -141,7 +151,11 @@ func (a *Aurora) Use(Configuration ...interface{}) {
 			a.options = append(a.options, opt)
 			continue
 		}
-
+		if rt.Implements(reflect.TypeOf(new(cmux.CMux)).Elem()) {
+			opt = useCMux(u)
+			a.options = append(a.options, opt)
+			continue
+		}
 		//默认没有找到其他可配置项，把它当作处理器加载
 		opt = useController(u)
 		a.options = append(a.options, opt)
@@ -163,17 +177,28 @@ func (a *Aurora) Run() error {
 	if p != "" {
 		a.port = p
 	}
-	l, err := net.Listen("tcp", ":"+a.port)
-	if err != nil {
-		return err
+	if a.mux == nil {
+		l, err := net.Listen("tcp", ":"+a.port)
+		if err != nil {
+			return err
+		}
+		a.ln = l
+		a.mux = cmux.New(l)
 	}
-	a.ln = l
 	if certFile != "" && keyFile != "" {
-		return a.server.ServeTLS(l, certFile, keyFile)
+		match := a.mux.Match(cmux.Any())
+		go a.server.ServeTLS(match, certFile, keyFile)
+		return a.mux.Serve()
 	}
-	return a.server.Serve(l) //启动服务器
+	match := a.mux.Match(cmux.Any())
+	go a.server.Serve(match)
+	return a.mux.Serve()
 }
 
 func (a *Aurora) Root() string {
 	return a.projectRoot
+}
+
+func (a *Aurora) CMux(mux cmux.CMux) {
+	a.mux = mux
 }

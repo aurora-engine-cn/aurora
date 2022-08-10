@@ -19,6 +19,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/magiconair/properties v1.8.6 // indirect
+	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/afero v1.8.1 // indirect
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
