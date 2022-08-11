@@ -79,6 +79,12 @@ func (c *ConfigCenter) ReadInConfig() error {
 	return c.Viper.ReadInConfig()
 }
 
+func (c *ConfigCenter) WatchRemoteConfig() error {
+	c.Lock()
+	defer c.Unlock()
+	return c.Viper.WatchRemoteConfig()
+}
+
 func (c *ConfigCenter) GetStringMapString(key string) map[string]string {
 	c.RLock()
 	defer c.RUnlock()

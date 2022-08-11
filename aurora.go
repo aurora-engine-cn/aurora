@@ -119,8 +119,8 @@ func NewAurora(option ...Option) *Aurora {
 	a.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
 	// server
 	a.use[reflect.TypeOf(&http.Server{})] = useServe
-
 	a.viperConfig()
+	a.consul()
 	return a
 }
 
@@ -158,7 +158,7 @@ func (a *Aurora) Run() error {
 	if err != nil {
 		return err
 	}
-	a.consul()
+
 	var p, certFile, keyFile string
 	if a.config != nil {
 		p = a.config.GetString("aurora.server.port")

@@ -2,15 +2,19 @@ package aurora
 
 import (
 	"github.com/hashicorp/consul/api"
+	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Consul struct {
-	Host   string // 当前consul 远程地址
-	Config string // consul KV 读取中心
+	Address string // 当前consul 远程地址
+	Config  string // consul KV 读取中心
 	*api.Client
 	*api.Agent
 	*api.KV
@@ -30,20 +34,65 @@ func (a *Aurora) consul() {
 		return
 	}
 	registers := consulConfig["register"]
+	conf := consulConfig["config"]
 	// 解析 地址
 	hosts := strings.Split(registers, ",")
 	consuls := consulHost(hosts)
 	if consuls == nil {
 		return
 	}
+	v := viper.New()
+	v.SetConfigType("yaml")
+
+	// 添加远程配置地址
+	for host, consul := range consuls {
+		consul.Address = host
+		consul.Config = conf
+		err := v.AddRemoteProvider("consul", host, "config/application-dev")
+		if err != nil {
+			panic(err)
+			return
+		}
+		//查看 并尝试
+	}
+	if conf != "" {
+		err := v.ReadRemoteConfig()
+		if err != nil {
+			panic(err)
+			return
+		}
+		// 刷新本地配置
+		cnf := &ConfigCenter{
+			v,
+			&sync.RWMutex{},
+		}
+		a.config = cnf
+		// 配置文件 监听
+		go func(center *ConfigCenter) {
+			for true {
+				// 每 5秒读取一次变化
+				time.Sleep(5 * time.Second)
+
+				err = center.WatchRemoteConfig()
+				if err != nil {
+					a.Error(err.Error())
+					continue
+				}
+
+			}
+		}(cnf)
+	}
+
 	// 生成 web 服务
 	registration := a.getAgentServiceRegistration()
+	// 注册服务
 	for _, consul := range consuls {
 		err := consul.Agent.ServiceRegister(registration)
 		if err != nil {
 			a.Error(err.Error())
 		}
 	}
+
 }
 
 func consulHost(hosts []string) map[string]*Consul {
@@ -97,4 +146,9 @@ func (a *Aurora) getAgentServiceCheck() *api.AgentServiceCheck {
 		TLSSkipVerify: true,
 	}
 	return c
+}
+
+// Health consul 健康检查回掉
+func Health() string {
+	return "ok"
 }
