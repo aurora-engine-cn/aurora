@@ -74,7 +74,7 @@ func (a *Aurora) consul() {
 		go func(center *ConfigCenter, ctx context.Context) {
 			for true {
 				// 每 5秒读取一次变化
-				time.Sleep(5 * time.Second)
+				time.Sleep(10 * time.Second)
 				//old := center.GetStringMap("aurora")
 				err = center.WatchRemoteConfig()
 				if err != nil {
@@ -94,6 +94,7 @@ func (a *Aurora) consul() {
 		if err != nil {
 			a.Error(err.Error())
 		}
+
 	}
 
 }
