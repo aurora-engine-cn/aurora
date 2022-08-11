@@ -76,7 +76,6 @@ type Aurora struct {
 }
 
 func NewAurora(option ...Option) *Aurora {
-
 	//初始化日志
 	logs := logrus.New()
 	logs.SetFormatter(&Formatter{})
@@ -159,6 +158,7 @@ func (a *Aurora) Run() error {
 	if err != nil {
 		return err
 	}
+	a.consul()
 	var p, certFile, keyFile string
 	if a.config != nil {
 		p = a.config.GetString("aurora.server.port")
