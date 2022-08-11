@@ -1,6 +1,7 @@
 package aurora
 
 import (
+	"context"
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -70,7 +71,7 @@ func (a *Aurora) consul() {
 		}
 		a.config = cnf
 		// 配置文件 监听
-		go func(center *ConfigCenter) {
+		go func(center *ConfigCenter, ctx context.Context) {
 			for true {
 				// 每 5秒读取一次变化
 				time.Sleep(5 * time.Second)
@@ -82,7 +83,7 @@ func (a *Aurora) consul() {
 				}
 				//new := center.GetStringMap("aurora")
 			}
-		}(cnf)
+		}(cnf, a.ctx)
 	}
 
 	// 生成 web 服务
