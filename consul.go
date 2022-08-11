@@ -74,13 +74,13 @@ func (a *Aurora) consul() {
 			for true {
 				// 每 5秒读取一次变化
 				time.Sleep(5 * time.Second)
-
+				//old := center.GetStringMap("aurora")
 				err = center.WatchRemoteConfig()
 				if err != nil {
 					a.Error(err.Error())
 					continue
 				}
-
+				//new := center.GetStringMap("aurora")
 			}
 		}(cnf)
 	}
@@ -97,6 +97,7 @@ func (a *Aurora) consul() {
 
 }
 
+// 创建集群客户端
 func consulHost(hosts []string) map[string]*Consul {
 	consuls := make(map[string]*Consul)
 	config := api.DefaultConfig()
