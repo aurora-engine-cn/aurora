@@ -7,5 +7,4 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.12.0
-	google.golang.org/grpc v1.47.0
 )
