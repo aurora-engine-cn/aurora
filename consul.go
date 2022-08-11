@@ -28,12 +28,16 @@ func newConsul(client *api.Client) *Consul {
 	return c
 }
 
+// 读取 配置文件 aurora.consul 并配置
 func (a *Aurora) consul() {
 	consulConfig := a.config.GetStringMapString("aurora.consul")
 	if consulConfig == nil {
 		return
 	}
+
+	// consul 服务地址
 	registers := consulConfig["register"]
+	// consul k/v 位置
 	conf := consulConfig["config"]
 	// 解析 地址
 	hosts := strings.Split(registers, ",")
@@ -41,21 +45,19 @@ func (a *Aurora) consul() {
 	if consuls == nil {
 		return
 	}
-	v := viper.New()
-	v.SetConfigType("yaml")
-
-	// 添加远程配置地址
-	for host, consul := range consuls {
-		consul.Address = host
-		consul.Config = conf
-		err := v.AddRemoteProvider("consul", host, "config/application-dev")
-		if err != nil {
-			panic(err)
-			return
-		}
-		//查看 并尝试
-	}
+	// 添加远程配置地址 并覆盖本地配置环境
 	if conf != "" {
+		v := viper.New()
+		v.SetConfigType("yaml")
+		for host, consul := range consuls {
+			consul.Address = host
+			consul.Config = conf
+			err := v.AddRemoteProvider("consul", host, conf)
+			if err != nil {
+				panic(err)
+				return
+			}
+		}
 		err := v.ReadRemoteConfig()
 		if err != nil {
 			panic(err)
