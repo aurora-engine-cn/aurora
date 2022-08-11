@@ -118,6 +118,9 @@ func (c *ConfigCenter) GetStringMapStringSlice(key string) map[string][]string {
 // viperConfig 配置并加载 application.yml 配置文件
 func (a *Aurora) viperConfig() {
 	var ConfigPath string
+
+	// consul 配置中心校验
+
 	if a.configpath == "" {
 		//检索配置文件所在路径
 		err := filepath.WalkDir(a.projectRoot, func(p string, d fs.DirEntry, err error) error {

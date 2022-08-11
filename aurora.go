@@ -70,6 +70,9 @@ type Aurora struct {
 	// go web 原生服务器
 	server *http.Server
 	ln     net.Listener // web服务器监听,启动服务器时候初始化 <+++>  计划 使用 多路复用器
+
+	// consul 治理中心
+	consuls map[string]*Consul
 }
 
 func NewAurora(option ...Option) *Aurora {
