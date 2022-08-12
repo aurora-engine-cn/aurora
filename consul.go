@@ -31,6 +31,18 @@ func newConsul(client *api.Client) *Consul {
 
 // 读取 配置文件 aurora.consul 并配置
 func (a *Aurora) consul() {
+	getString := a.config.GetString("enable")
+	if getString != "" {
+		enable, err := strconv.ParseBool(getString)
+		if err != nil {
+			log.Print(err.Error())
+			return
+		}
+		if !enable {
+			return
+		}
+	}
+
 	consulConfigs := a.config.GetStringMapString("aurora.consul")
 	if consulConfigs == nil {
 		return
@@ -148,10 +160,13 @@ func (a *Aurora) getConsulClientConfig() *api.Config {
 func (a *Aurora) getAgentServiceRegistration() *api.AgentServiceRegistration {
 	// 读取 服务 名称
 	name := a.config.GetString("aurora.server.name")
+
 	// 读取 服务 ip地址
 	host := a.config.GetString("aurora.server.host")
+
 	// 读取 服务 端口
 	port := a.config.GetString("aurora.server.port")
+
 	atoi, err := strconv.Atoi(port)
 	if err != nil {
 		panic(err)
