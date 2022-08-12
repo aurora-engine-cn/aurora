@@ -2,6 +2,7 @@ package aurora
 
 import (
 	"context"
+	"github.com/druidcaesa/ztool"
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -36,17 +37,23 @@ func (a *Aurora) consul() {
 		return
 	}
 
-	// consul 服务地址
+	// 找到 consul 服务地址，用于注册本服务
 	registers := consulConfig["register"]
-	// consul k/v 位置
+
+	// config 读取 consul k/v 用于指定的配置文件读取
+	// 若是没有配置，则继续使用本地配置
 	conf := consulConfig["config"]
-	// 解析 地址
+
+	// 解析注册地址
 	hosts := strings.Split(registers, ",")
+	// 创建 每个 consul 的 客户端
 	consuls := consulHost(hosts)
+
+	// 创建失败 则结束配置
 	if consuls == nil {
 		return
 	}
-	// 添加远程配置地址 并覆盖本地配置环境
+	// conf 若配置 则添加远程配置地址 并覆盖本地配置环境
 	if conf != "" {
 		v := viper.New()
 		v.SetConfigType("yaml")
@@ -119,15 +126,23 @@ func consulHost(hosts []string) map[string]*Consul {
 
 // 生成当前 web 服务注册信息
 func (a *Aurora) getAgentServiceRegistration() *api.AgentServiceRegistration {
+	// 读取 服务 名称
 	name := a.config.GetString("aurora.server.name")
+	// 读取 服务 ip地址
 	host := a.config.GetString("aurora.server.host")
+	// 读取 服务 端口
 	port := a.config.GetString("aurora.server.port")
 	atoi, err := strconv.Atoi(port)
 	if err != nil {
 		panic(err)
 	}
+
+	//时间后缀生成服务id
+	format := ztool.DateUtils.Format("YYYYMMDDhhmmss")
+
+	// 创建服务
 	registration := &api.AgentServiceRegistration{
-		ID:      name,
+		ID:      strings.ToUpper(name) + "-" + format,
 		Name:    name,
 		Port:    atoi,
 		Address: host,
@@ -137,18 +152,28 @@ func (a *Aurora) getAgentServiceRegistration() *api.AgentServiceRegistration {
 }
 
 func (a *Aurora) getAgentServiceCheck() *api.AgentServiceCheck {
+
+	// 读取服务检查 地址 aurora 默认采用 http 方式
 	url := a.config.GetString("aurora.consul.service.check.url")
+
+	// 读取服务名称
 	name := a.config.GetString("aurora.consul.service.check.name")
+
+	// 读取 心跳检查频率
 	interval := a.config.GetString("aurora.consul.service.check.interval")
+
+	// 读取 服务超时时间
 	timeout := a.config.GetString("aurora.consul.service.check.timeout")
+
+	// 创建 服务检查
 	c := &api.AgentServiceCheck{
 		CheckID:       "",
 		Name:          name,
 		Interval:      interval,
 		Timeout:       timeout,
 		HTTP:          url,
-		Method:        http.MethodGet,
-		TLSSkipVerify: true,
+		Method:        http.MethodGet, // 默认使用post 进行检查
+		TLSSkipVerify: true,           // 默认不开启 tls 检查
 	}
 	return c
 }
