@@ -43,6 +43,9 @@ func (a *Aurora) consul() {
 	// 若是没有配置，则继续使用本地配置
 	conf := consulConfigs["config"]
 	ref := consulConfigs["refresh"]
+	if ref[len(ref)-1:] != "s" {
+		panic("configuration refresh time format error")
+	}
 	refresh, err := strconv.Atoi(ref[:len(ref)-1])
 	if err != nil {
 		panic(err)
