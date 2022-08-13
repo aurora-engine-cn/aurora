@@ -1,6 +1,7 @@
 package aurora
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
@@ -31,18 +32,11 @@ func newConsul(client *api.Client) *Consul {
 
 // 读取 配置文件 aurora.consul 并配置
 func (a *Aurora) consul() {
-	getString := a.config.GetString("enable")
-	if getString != "" {
-		enable, err := strconv.ParseBool(getString)
-		if err != nil {
-			log.Print(err.Error())
-			return
-		}
-		if !enable {
-			return
-		}
-	}
 
+	// 对对基本配置进行检查，确保后续正确性
+	if preCheck, err := a.preCheck(); !preCheck {
+		ErrorMsg(err)
+	}
 	consulConfigs := a.config.GetStringMapString("aurora.consul")
 	if consulConfigs == nil {
 		return
@@ -67,12 +61,11 @@ func (a *Aurora) consul() {
 	hosts := strings.Split(registers, ",")
 	// 创建 每个 consul 的 客户端
 	consuls := a.consulHost(hosts)
-
 	// 创建失败 则结束配置
 	if consuls == nil {
 		return
 	}
-
+	a.consulCenter = &ConsulCenter{consuls: consuls}
 	// conf 若配置 则添加远程配置地址 并覆盖本地配置环境
 	if conf != "" {
 		v := viper.New()
@@ -81,15 +74,11 @@ func (a *Aurora) consul() {
 			consul.Address = host
 			consul.Config = conf
 			err = v.AddRemoteProvider("consul", host, conf)
-			if err != nil {
-				panic(err)
-				return
-			}
+			ErrorMsg(err)
 		}
 		err = v.ReadRemoteConfig()
 		if err != nil {
-			panic(err)
-			return
+			ErrorMsg(err)
 		}
 		// 刷新本地配置
 		cnf := &ConfigCenter{
@@ -123,6 +112,8 @@ func (a *Aurora) consul() {
 
 	}
 
+	// consul 配置完毕 把 consul 的配置中心加入到 ioc 中
+	a.Use(a.consulCenter)
 }
 
 // 创建集群客户端
@@ -143,6 +134,7 @@ func (a *Aurora) consulHost(hosts []string) map[string]*Consul {
 	return consuls
 }
 
+// 初始化 consul客户端公共配置
 func (a *Aurora) getConsulClientConfig() *api.Config {
 	config := api.DefaultConfig()
 	// 读取 客户端初始化配置项
@@ -172,8 +164,8 @@ func (a *Aurora) getAgentServiceRegistration() *api.AgentServiceRegistration {
 		panic(err)
 	}
 
-	// 生成唯一服务id
-	format := fmt.Sprintf("%s-%s:%s", strings.ToUpper(name), host, port)
+	// 生成唯一服务id 区分集群
+	format := fmt.Sprintf("%s-%s:%s", name, host, port)
 
 	// 创建服务
 	registration := &api.AgentServiceRegistration{
@@ -191,19 +183,38 @@ func (a *Aurora) getAgentServiceCheck() *api.AgentServiceCheck {
 	// 读取服务检查 地址 aurora 默认采用 http 方式
 	url := a.config.GetString("aurora.consul.service.check.url")
 
-	// 读取服务名称
-	name := a.config.GetString("aurora.consul.service.check.name")
-
 	// 读取 心跳检查频率
 	interval := a.config.GetString("aurora.consul.service.check.interval")
 
 	// 读取 服务超时时间
 	timeout := a.config.GetString("aurora.consul.service.check.timeout")
 
+	checkName := a.config.GetString("aurora.server.name")
+
+	// 读取检查名称
+	if name := a.config.GetString("aurora.consul.service.check.name"); name == "" {
+		//生成服务检查名称
+		checkName = fmt.Sprintf("Service '%s' check", checkName)
+	} else {
+		checkName = name
+	}
+
+	// 读取 服务 名称
+	name := a.config.GetString("aurora.server.name")
+
+	// 读取 服务 ip地址
+	host := a.config.GetString("aurora.server.host")
+
+	// 读取 服务 端口
+	port := a.config.GetString("aurora.server.port")
+
+	// 生成检查ID
+	checkId := fmt.Sprintf("Service:%s-%s:%s", strings.ToUpper(name), host, port)
+
 	// 创建 服务检查
 	c := &api.AgentServiceCheck{
-		CheckID:       "",
-		Name:          name,
+		CheckID:       checkId,
+		Name:          checkName,
 		Interval:      interval,
 		Timeout:       timeout,
 		HTTP:          url,
@@ -213,7 +224,45 @@ func (a *Aurora) getAgentServiceCheck() *api.AgentServiceCheck {
 	return c
 }
 
+// 配置consul 之前的配置预检查
+func (a *Aurora) preCheck() (bool, error) {
+	// 检查服务名是否配置
+	// 读取 服务 名称
+	if name := a.config.GetString("aurora.server.name"); name == "" {
+		return false, errors.New("no service name is configured, please check the configuration file configuration item 'aurora.server.name'")
+	}
+
+	// 检查 端口号
+	// 读取 服务 端口
+	if port := a.config.GetString("aurora.server.port"); port == "" {
+		return false, errors.New("no service port is configured, please check the configuration file configuration item 'aurora.server.port'")
+	}
+
+	// 检查 主机号
+	// 读取 服务 ip地址
+	if host := a.config.GetString("aurora.server.host"); host == "" {
+		return false, errors.New("no service host is configured, please check the configuration file configuration item 'aurora.server.host'")
+	}
+
+	// 检查 是否启用
+	getString := a.config.GetString("enable")
+	if getString != "" {
+		enable, err := strconv.ParseBool(getString)
+		if err != nil {
+			return false, err
+		}
+		if !enable {
+			return enable, nil
+		}
+	}
+	return true, nil
+}
+
 // Health consul 健康检查回掉
 func Health() string {
 	return "ok"
+}
+
+func (c *Consul) GetService() {
+
 }
