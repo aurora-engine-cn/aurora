@@ -109,10 +109,9 @@ func NewAurora(option ...Option) *Aurora {
 				return &bytes.Buffer{}
 			},
 		},
-		server:    &http.Server{},
-		resource:  "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
-		use:       make(map[interface{}]UseConfiguration),
-		component: newIoc(),
+		server:   &http.Server{},
+		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
+		use:      make(map[interface{}]UseConfiguration),
 	}
 	//初始化基本属性
 
@@ -120,6 +119,7 @@ func NewAurora(option ...Option) *Aurora {
 	a.Log = logs
 	projectRoot, _ := os.Getwd()
 	a.projectRoot = projectRoot //初始化项目路径信息
+	a.component = newIoc(a.Log)
 	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 	a.control(a)
 	a.viperConfig()
@@ -194,7 +194,9 @@ func (a *Aurora) Use(Configuration ...interface{}) {
 
 // Run 启动服务器
 func (a *Aurora) Run() error {
+	// 启动路由
 	a.startRouter()
+
 	var p, certFile, keyFile string
 	if a.config != nil {
 		p = a.config.GetString("aurora.server.port")
@@ -217,6 +219,7 @@ func (a *Aurora) Run() error {
 }
 
 // dependencyInjection Control 依赖加载
+// controllers 属性中存储的都是 匿名组件类型
 func (a *Aurora) dependencyInjection() {
 	if a.controllers == nil {
 		return

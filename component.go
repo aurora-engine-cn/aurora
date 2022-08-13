@@ -54,6 +54,7 @@ func (a *Aurora) StartIoc() {
 
 func (a *Aurora) startRouter() {
 	// 完成容器启动 ，这一步主要是针对于 属于controller处理器一部分进行操作，比如自动加载一些配置文件中的值
+	// 该步骤仅对匿名的控制器组件产生效果，命名组件不处理
 	a.dependencyInjection()
 
 	// 设置web服务的静态资源处理路径 默认初始化为 / 为 根路径
