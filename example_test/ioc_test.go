@@ -22,11 +22,6 @@ type Ccc struct {
 }
 
 func TestIoc(t *testing.T) {
-	a := aurora.NewAurora()
-	a.Use(&Aaa{Name: "Aaa", Bbb: &Bbb{Name: "Bbb"}})
-	a.Use(aurora.Component{"a": Ccc{Name: "ccc"}})
-	a.Url("/", &TestServer{}, Before)
-	aurora.Run(a)
 }
 
 type TestServer struct {

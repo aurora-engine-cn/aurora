@@ -193,7 +193,7 @@ func (a *Aurora) Use(Configuration ...interface{}) {
 }
 
 // Run 启动服务器
-func (a *Aurora) Run() error {
+func (a *Aurora) run() error {
 	// 启动路由
 	a.startRouter()
 

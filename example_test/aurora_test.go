@@ -26,26 +26,12 @@ type Ccc struct {
 }
 
 func TestAurora(t *testing.T) {
-	a := aurora.NewAurora()
-	/// 注册一个系统变量，类型为 *Ccc
-	a.SysVariable(&Ccc{}, func(proxy *aurora.Proxy) interface{} {
-		c := &Aaa{Name: "test"}
-		return c
-	})
-	a.Get("/", func(ccc *Ccc, req *http.Request) {
-		fmt.Println(ccc)
-	})
-	a.Get("/s", Ccc{})
-	aurora.Run(a)
+
 }
 
 // TestGet Get请求测试
 func TestGet(t *testing.T) {
-	a := aurora.NewAurora()
-	a.Get("/", func(a string) {
 
-	})
-	aurora.Run(a)
 }
 
 type Post struct {
@@ -75,7 +61,6 @@ func TestPost(t *testing.T) {
 		fmt.Println(post)
 	})
 
-	aurora.Run(a)
 }
 
 // TestBenchmark 压测api
@@ -90,7 +75,7 @@ func TestBenchmark(t *testing.T) {
 	a.Post("/user", func() string {
 		return ""
 	})
-	aurora.Run(a)
+
 }
 
 // 测试 接口
@@ -131,7 +116,6 @@ func TestRouter(t *testing.T) {
 		a.Get(s, i)
 	}
 	go t.Run("http", TestHttp)
-	aurora.Run(a)
 }
 
 func TestHttp(t *testing.T) {
@@ -153,28 +137,9 @@ func TestHttp(t *testing.T) {
 	fmt.Println("成功访问了:", count, "个接口,一共 ", len(api), " 个接口")
 }
 
-/*type T interface {
-	~int | ~float64 | ~bool | ~string
-}
-
-type List[t T] struct {
-	Arr []t
-}
-
-func (a *List[t]) add(value t) {
-	if a.Arr == nil {
-		a.Arr = make([]t, 0)
-	}
-	a.Arr = append(a.Arr, value)
-}*/
-
 // TestRESTFul 动态路由测试
 func TestRESTFul(t *testing.T) {
-	a := aurora.NewAurora()
-	/*a.Post("/test", func(array List[string]) {
-		fmt.Println(array)
-	})*/
-	aurora.Run(a)
+
 }
 
 func TestC(t *testing.T) {

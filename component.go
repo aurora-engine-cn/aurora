@@ -12,7 +12,7 @@ type Component map[string]interface{}
 type Constructors func() interface{}
 
 // StartIoc 启动容器
-func (a *Aurora) StartIoc() {
+func (a *Aurora) ioc() {
 	a.Info("start component-dependent assembly")
 
 	//加载uses配置项，配置项中可能存在加载ioc配置
