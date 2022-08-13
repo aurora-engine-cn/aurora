@@ -176,3 +176,14 @@ func TestRESTFul(t *testing.T) {
 	})*/
 	aurora.Run(a)
 }
+
+func TestC(t *testing.T) {
+	a := aurora.NewAurora()
+	a.Use(Get())
+}
+
+func Get() aurora.Constructors {
+	return func() interface{} {
+		return nil
+	}
+}

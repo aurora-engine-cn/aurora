@@ -7,14 +7,19 @@ import (
 	"runtime"
 )
 
-// Component 组件加载类型
+// Component 命名组件
 type Component map[string]interface{}
+
+// Constructors 用于加载 匿名组件的构造器类型
+// Aurora 会执行这个函数 并把得到的变量加载到 ioc 容器中
+type Constructors func() interface{}
 
 func (a *Aurora) componentInit() error {
 	//初始化基本属性
 	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 
 	a.Info("Initialize the built-in system request parameters")
+
 	// 初始化系统参数
 	if a.intrinsic == nil {
 		a.intrinsic = make(map[string]Constructor)
@@ -24,14 +29,18 @@ func (a *Aurora) componentInit() error {
 	a.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
 	a.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
 
-	a.loadResourceHead() //加载静态资源头
+	//加载静态资源头
+	a.loadResourceHead()
+
 	a.Info("start component-dependent assembly")
-	//加载uses配置项
+
+	//加载uses配置项，配置项中可能存在加载ioc配置
 	if a.options != nil {
 		for _, useOption := range a.options {
 			useOption(a)
 		}
 	}
+
 	//加载 注册的依赖到 初级缓存
 	if a.components != nil {
 		for _, component := range a.components {
@@ -43,14 +52,22 @@ func (a *Aurora) componentInit() error {
 			}
 		}
 	}
+	// 清空
 	a.components = nil
-	//启动容器 ,容器加载出错 结束运行
+
+	//启动容器 ,给容器中的组件进行依赖初始化,容器加载出错 结束运行
 	err := a.component.start()
 	if err != nil {
 		return err
 	}
-	a.dependencyInjection()              // Ioc依赖注入初始化,第三方库的配置需要在此之前进行装配
-	a.resource = "/"                     //默认初始化为 / 为 根路径
+
+	// 完成容器启动 ，这一步主要是针对于 属于controller处理器一部分进行操作，比如自动加载一些配置文件中的值
+	a.dependencyInjection()
+
+	// 设置web服务的静态资源处理路径 默认初始化为 / 为 根路径
+	// 此处的静态资源 不是作为文件服务器的支持 仅仅支持html资源的加载
+	a.resource = "/"
+
 	a.server.BaseContext = a.baseContext //配置 上下文对象属性
 	a.router.defaultView = a             //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
 	a.server.Handler = a                 //设置默认路由器

@@ -46,7 +46,7 @@ func (i *ioc) get(ref string) *reflect.Value {
 	return v
 }
 
-// putIn 想容器装载属性,不允许覆盖已经存在的 属性实例，主要提供对外使用.
+// putIn 向容器装载属性,不允许覆盖已经存在的 属性实例，主要提供对外使用.
 // 它允许覆盖 初级缓存中的配置项
 func (i *ioc) putIn(ref string, value interface{}) error {
 	if _, b := i.id.Load(ref); b {

@@ -10,7 +10,7 @@ type UseOption func(*Aurora)
 type UseConfiguration func(interface{}) UseOption
 
 // useController Use的 处理器注册
-func useController(control interface{}) UseOption {
+func useConstructors(control interface{}) UseOption {
 	return func(a *Aurora) {
 		a.control(control)
 	}

@@ -54,26 +54,37 @@ type Aurora struct {
 	//Aurora 配置启动配置项
 	opt []Option
 
+	// 接口信息
 	api map[string][]controlInfo
+
 	// 各类配置项的存储，在初始化阶段预存了内置的配置项获取,可以通过api多这个配置项镜像添加或覆盖
 	use map[interface{}]UseConfiguration
+
 	// 最后初始化需要加载的配置项
 	options []UseOption
-	// ioc命名组件
+
+	// ioc 命名组件
 	components []Component
+
+	// ioc 匿名组件
+	build []Constructors
+
 	// 第三方组件管理容器
 	component *ioc
+
 	// 加载结构体作为处理器, 处理器并不会被注册到缓存容器中，处理器在启动期间会根据需要去缓存容器中寻找对应的依赖
 	controllers []*reflect.Value
+
 	// 配置实例，读取配置文件
 	config Config
+
 	// go web 原生服务器
 	server *http.Server
-	ln     net.Listener // web服务器监听,启动服务器时候初始化 <+++>  计划 使用 多路复用器
+
+	ln net.Listener
 
 	// consul 治理中心
 	consulCenter *ConsulCenter
-	consuls      map[string]*Consul
 }
 
 func NewAurora(option ...Option) *Aurora {
@@ -109,17 +120,25 @@ func NewAurora(option ...Option) *Aurora {
 	for _, opt := range option {
 		opt(a)
 	}
-	middleware := new(Middleware)
+	var middleware Middleware
+	var constructors Constructors
 	// 中间件配置项
-	a.use[reflect.TypeOf(middleware).Elem()] = useMiddleware
+	a.use[reflect.TypeOf(middleware)] = useMiddleware
+
 	// 静态资源头配置项，主要设置可能不存在的资源头，或者过时的子资源
 	a.use[reflect.TypeOf(ContentType{})] = useContentType
+
+	// 匿名组件
+	a.use[reflect.TypeOf(constructors)] = useConstructors
 	// 命名组件
 	a.use[reflect.TypeOf(Component{})] = useComponent
+
 	// log 日志
 	a.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
+
 	// server
 	a.use[reflect.TypeOf(&http.Server{})] = useServe
+
 	a.viperConfig()
 	a.consul()
 	return a
@@ -147,8 +166,6 @@ func (a *Aurora) Use(Configuration ...interface{}) {
 			a.options = append(a.options, opt)
 			continue
 		}
-		//默认没有找到其他可配置项，把它当作处理器加载
-		opt = useController(u)
 		a.options = append(a.options, opt)
 	}
 }
