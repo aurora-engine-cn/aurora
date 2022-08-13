@@ -14,6 +14,8 @@ import (
 	"sync"
 )
 
+var banner = "      __        _____  _____    _______         ____        _______           __\n     /  \\      |_   _||_   _|  |_   __ \\      .'    `.     |_   __ \\         /  \\\n    / /\\ \\       | |    | |      | |__) |    /  .--.  \\      | |__) |       / /\\ \\\n   / ____ \\      | '    ' |      |  __ /     | |    | |      |  __ /       / ____ \\\n _/ /    \\ \\_     \\ `--' /      _| |  \\ \\_   \\  `--'  /     _| |  \\ \\_   _/ /    \\ \\_\n|____|  |____|     `.__.'      |____| |___|   `.____.'     |____| |___| |____|  |____|\n|                       Aurora Web framework (version 1.0.5)                         |"
+
 type Aurora struct {
 	// 日志
 	Log
@@ -120,6 +122,7 @@ func NewAurora(option ...Option) *Aurora {
 	projectRoot, _ := os.Getwd()
 	a.projectRoot = projectRoot //初始化项目路径信息
 	a.component = newIoc(a.Log)
+	a.printBanner()
 	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 	a.control(a)
 	a.viperConfig()
@@ -250,6 +253,10 @@ func (a *Aurora) dependencyInjection() {
 			}
 		}
 	}
+}
+
+func (a *Aurora) printBanner() {
+	fmt.Println(banner)
 }
 
 func (a *Aurora) Root() string {

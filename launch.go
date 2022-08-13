@@ -20,6 +20,9 @@ type Application interface {
 }
 
 func Run(app Application) error {
+	// 注册当前服务
+	app.Use(app)
+
 	// 初始化 服务
 	app.Server()
 
