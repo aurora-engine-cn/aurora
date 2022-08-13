@@ -6,6 +6,7 @@ type Application interface {
 }
 
 func Run(app Application) {
+	// 注册自身
 	app.Use(app)
 	err := app.Run()
 	ErrorMsg(err)

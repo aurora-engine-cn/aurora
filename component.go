@@ -2,9 +2,6 @@ package aurora
 
 import (
 	"fmt"
-	"net/http"
-	"reflect"
-	"runtime"
 )
 
 // Component 命名组件
@@ -14,24 +11,8 @@ type Component map[string]interface{}
 // Aurora 会执行这个函数 并把得到的变量加载到 ioc 容器中
 type Constructors func() interface{}
 
-func (a *Aurora) componentInit() error {
-	//初始化基本属性
-	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-
-	a.Info("Initialize the built-in system request parameters")
-
-	// 初始化系统参数
-	if a.intrinsic == nil {
-		a.intrinsic = make(map[string]Constructor)
-	}
-	a.intrinsic[reflect.TypeOf(&http.Request{}).String()] = req
-	a.intrinsic[reflect.TypeOf(new(http.ResponseWriter)).Elem().String()] = rew
-	a.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
-	a.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
-
-	//加载静态资源头
-	a.loadResourceHead()
-
+// StartIoc 启动容器
+func (a *Aurora) StartIoc() {
 	a.Info("start component-dependent assembly")
 
 	//加载uses配置项，配置项中可能存在加载ioc配置
@@ -41,26 +22,37 @@ func (a *Aurora) componentInit() error {
 		}
 	}
 
+	// 加载 构造器 build 到 ioc 容器
+	if a.build != nil {
+		for _, constructor := range a.build {
+			// 执行构造 生成组件放入到 ioc中
+			c := constructor()
+
+			a.control(c)
+		}
+	}
+
 	//加载 注册的依赖到 初级缓存
 	if a.components != nil {
 		for _, component := range a.components {
 			for k, v := range component {
 				if err := a.component.putIn(k, v); err != nil {
-					return err
+					ErrorMsg(err)
 				}
-				a.Info("")
 			}
 		}
 	}
 	// 清空
 	a.components = nil
-
 	//启动容器 ,给容器中的组件进行依赖初始化,容器加载出错 结束运行
 	err := a.component.start()
 	if err != nil {
-		return err
+		ErrorMsg(err)
 	}
 
+}
+
+func (a *Aurora) startRouter() {
 	// 完成容器启动 ，这一步主要是针对于 属于controller处理器一部分进行操作，比如自动加载一些配置文件中的值
 	a.dependencyInjection()
 
@@ -99,7 +91,6 @@ func (a *Aurora) componentInit() error {
 			a.Info("the service name is " + a.name)
 		}
 	}
-
 	//注册路由
 	if a.api != nil {
 		for method, infos := range a.api {
@@ -109,5 +100,4 @@ func (a *Aurora) componentInit() error {
 		}
 		a.api = nil
 	}
-	return nil
 }

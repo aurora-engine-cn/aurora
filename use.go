@@ -12,6 +12,18 @@ type UseConfiguration func(interface{}) UseOption
 // useController Use的 处理器注册
 func useConstructors(control interface{}) UseOption {
 	return func(a *Aurora) {
+		if constructors, b := control.(Constructors); b {
+			if a.build == nil {
+				a.build = make([]Constructors, 0)
+			}
+			a.build = append(a.build, constructors)
+		}
+	}
+}
+
+// useControl
+func useControl(control interface{}) UseOption {
+	return func(a *Aurora) {
 		a.control(control)
 	}
 }

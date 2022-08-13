@@ -36,6 +36,7 @@ func (a *Aurora) consul() {
 	// 对对基本配置进行检查，确保后续正确性
 	if preCheck, err := a.preCheck(); !preCheck {
 		ErrorMsg(err)
+		return
 	}
 	consulConfigs := a.config.GetStringMapString("aurora.consul")
 	if consulConfigs == nil {
@@ -227,6 +228,26 @@ func (a *Aurora) getAgentServiceCheck() *api.AgentServiceCheck {
 // 配置consul 之前的配置预检查
 func (a *Aurora) preCheck() (bool, error) {
 	// 检查服务名是否配置
+
+	s := a.config.Get("aurora.consul")
+	if s == nil {
+		return false, nil
+	}
+	// 检查 是否启用 consul
+	getString := a.config.GetString("aurora.consul.enable")
+
+	// 没有配置 enable 默认启动
+	if getString != "" {
+		enable, err := strconv.ParseBool(getString)
+		if err != nil {
+			return false, err
+		}
+
+		// 不启动 返回 false 和 nil 不进行下面的检查
+		if !enable {
+			return enable, nil
+		}
+	}
 	// 读取 服务 名称
 	if name := a.config.GetString("aurora.server.name"); name == "" {
 		return false, errors.New("no service name is configured, please check the configuration file configuration item 'aurora.server.name'")
@@ -244,17 +265,6 @@ func (a *Aurora) preCheck() (bool, error) {
 		return false, errors.New("no service host is configured, please check the configuration file configuration item 'aurora.server.host'")
 	}
 
-	// 检查 是否启用
-	getString := a.config.GetString("enable")
-	if getString != "" {
-		enable, err := strconv.ParseBool(getString)
-		if err != nil {
-			return false, err
-		}
-		if !enable {
-			return enable, nil
-		}
-	}
 	return true, nil
 }
 

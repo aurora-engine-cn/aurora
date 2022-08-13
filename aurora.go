@@ -3,12 +3,14 @@ package aurora
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"gitee.com/aurora-engine/aurora/utils"
 	"github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"os"
 	"reflect"
+	"runtime"
 	"sync"
 )
 
@@ -112,14 +114,22 @@ func NewAurora(option ...Option) *Aurora {
 		use:       make(map[interface{}]UseConfiguration),
 		component: newIoc(),
 	}
+	//初始化基本属性
+
 	a.router.Aurora = a
 	a.Log = logs
 	projectRoot, _ := os.Getwd()
 	a.projectRoot = projectRoot //初始化项目路径信息
+	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
+	a.control(a)
+	a.viperConfig()
+	a.consul()
+
 	//执行配置项
 	for _, opt := range option {
 		opt(a)
 	}
+
 	var middleware Middleware
 	var constructors Constructors
 	// 中间件配置项
@@ -139,8 +149,19 @@ func NewAurora(option ...Option) *Aurora {
 	// server
 	a.use[reflect.TypeOf(&http.Server{})] = useServe
 
-	a.viperConfig()
-	a.consul()
+	a.Info("Initialize the built-in system request parameters")
+	// 初始化系统参数
+	if a.intrinsic == nil {
+		a.intrinsic = make(map[string]Constructor)
+	}
+	a.intrinsic[reflect.TypeOf(&http.Request{}).String()] = req
+	a.intrinsic[reflect.TypeOf(new(http.ResponseWriter)).Elem().String()] = rew
+	a.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
+	a.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
+
+	//加载静态资源头
+	a.loadResourceHead()
+
 	return a
 }
 
@@ -166,17 +187,14 @@ func (a *Aurora) Use(Configuration ...interface{}) {
 			a.options = append(a.options, opt)
 			continue
 		}
+		opt = useControl(u)
 		a.options = append(a.options, opt)
 	}
 }
 
 // Run 启动服务器
 func (a *Aurora) Run() error {
-	err := a.componentInit()
-	if err != nil {
-		return err
-	}
-
+	a.startRouter()
 	var p, certFile, keyFile string
 	if a.config != nil {
 		p = a.config.GetString("aurora.server.port")

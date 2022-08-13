@@ -145,6 +145,7 @@ func (a *Aurora) viperConfig() {
 		ConfigPath = a.configpath
 	}
 	if ConfigPath == "" {
+		a.config = &ConfigCenter{viper.New(), &sync.RWMutex{}}
 		return
 	}
 	if a.config == nil {
