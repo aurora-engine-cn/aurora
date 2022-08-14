@@ -13,14 +13,14 @@ go1.16+
 
 ## 快速开始
 
-创建一个结构体，嵌套一个 `*Aurora` 实例 完成对服务器的创建
+创建一个结构体，嵌套一个 `*aurora.Aurora` 实例 完成对服务器的创建
 ```go
 // Server 嵌套Aurora定义一个服务 实例
 type Server struct {
     *aurora.Aurora
 }
 ```
-实现 `aurora.Application` 接口中的两个方法, 接口定义如下,除了`Server` 和 `Router()` 其他方法均由 `*aurora.Aurora` 实现了
+实现 `aurora.Application` 接口中的两个方法, 接口定义如下,除了`Server()` 和 `Router()` 其他方法均由 `*aurora.Aurora` 实现了
 ```go
 type Application interface {
 	Use(...interface{})
@@ -70,6 +70,6 @@ if err != nil {
 ![](https://camo.githubusercontent.com/5075c80d56620267702a3808e7a926ff51235b2ecd986441c092e3b6b821af83/68747470733a2f2f7265736f75726365732e6a6574627261696e732e636f6d2f73746f726167652f70726f64756374732f636f6d70616e792f6272616e642f6c6f676f732f6a625f6265616d2e737667)<br>
 感谢 [JetBrains](https://www.jetbrains.com/) 支持了该开源项目
 
-## copyright information
+## 版权信息
 
-该项目签署了**Apache**授权许可，详情请参阅 [LICENSE](https://github.com/awensir/go-aurora/blob/main/LICENSE)
+该项目签署了**Apache**授权许可，详情请参阅 [LICENSE](https://gitee.com/aurora-engine/aurora/blob/new_dev/LICENSE)

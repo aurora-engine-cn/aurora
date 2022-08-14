@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-var banner = "      __        _____  _____    _______         ____        _______           __\n     /  \\      |_   _||_   _|  |_   __ \\      .'    `.     |_   __ \\         /  \\\n    / /\\ \\       | |    | |      | |__) |    /  .--.  \\      | |__) |       / /\\ \\\n   / ____ \\      | '    ' |      |  __ /     | |    | |      |  __ /       / ____ \\\n _/ /    \\ \\_     \\ `--' /      _| |  \\ \\_   \\  `--'  /     _| |  \\ \\_   _/ /    \\ \\_\n|____|  |____|     `.__.'      |____| |___|   `.____.'     |____| |___| |____|  |____|\n|                       Aurora Web framework (version 1.0.5)                         |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.   \n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :  \n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |, \n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/ \n|       Aurora Web framework (v2.0.1-beat.1)       |"
 
 type Aurora struct {
 	// 日志
@@ -256,7 +256,7 @@ func (a *Aurora) dependencyInjection() {
 }
 
 func (a *Aurora) printBanner() {
-	fmt.Println(banner)
+	fmt.Printf("%s\n\r", banner)
 }
 
 func (a *Aurora) Root() string {
