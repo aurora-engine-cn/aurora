@@ -2,7 +2,6 @@ package aurora
 
 import (
 	"net/http"
-	reflect "reflect"
 	"strings"
 )
 
@@ -33,34 +32,17 @@ func (a *Aurora) Head(url string, control Controller, middleware ...Middleware) 
 	a.register(http.MethodHead, url, control, middleware...)
 }
 
-// Url 结构体专属 注册器
-func (a *Aurora) Url(url string, control Controller, middleware ...Middleware) {
-	structUrl := a.analysisStructUrl(url, control, middleware...)
-	if a.api == nil {
-		a.api = make(map[string][]controlInfo)
-	}
-	for k, infos := range structUrl {
-		if _, b := a.api[k]; !b {
-			a.api[k] = infos
-		} else {
-			a.api[k] = append(a.api[k], infos...)
-		}
-	}
-}
-
 // register 通用注册器
 func (a *Aurora) register(method string, url string, control Controller, middleware ...Middleware) {
 	if a.api == nil {
 		a.api = make(map[string][]controlInfo)
 	}
-	apis := a.analysisStruct(url, control, middleware...)
-	// 查重校验
-	//api := controlInfo{path: url, control: control, middleware: middleware}
+	api := controlInfo{path: url, control: control, middleware: middleware}
 	if _, b := a.api[method]; !b {
 		a.api[method] = make([]controlInfo, 0)
-		a.api[method] = append(a.api[method], apis...)
+		a.api[method] = append(a.api[method], api)
 	} else {
-		a.api[method] = append(a.api[method], apis...)
+		a.api[method] = append(a.api[method], api)
 	}
 }
 
@@ -76,118 +58,6 @@ func (a *Aurora) Group(url string, middleware ...Middleware) *Group {
 		a:          a,
 		middleware: middleware,
 	}
-}
-
-// analysisStruct 解析结构体作为接口注册
-// control 为结构体或者指向结构体的指针 或者是个函数
-func (a *Aurora) analysisStruct(path string, control Controller, middleware ...Middleware) []controlInfo {
-	if control == nil {
-		return nil
-	}
-	arr := make([]controlInfo, 0)
-	of := reflect.ValueOf(control)
-	switch of.Kind() {
-	case reflect.Ptr:
-		elem := of.Elem()
-		if elem.Kind() == reflect.Ptr {
-			return nil
-		}
-		if elem.Kind() != reflect.Struct {
-			return nil
-		}
-		methods := of.NumMethod()
-		for i := 0; i < methods; i++ {
-			method := of.Type().Method(i)
-			//if !method.IsExported() {
-			//	continue
-			//}
-			register := urlRegister(method.Name)
-			fun := of.Method(i)
-			info := controlInfo{path: path + "/" + register, control: fun.Interface(), middleware: middleware}
-			arr = append(arr, info)
-		}
-		a.control(control)
-	case reflect.Struct:
-		methods := of.NumMethod()
-		for i := 0; i < methods; i++ {
-			method := of.Type().Method(i)
-			//if !method.IsExported() {
-			//	continue
-			//}
-			register := urlRegister(method.Name)
-			fun := of.Method(i)
-			info := controlInfo{path: path + "/" + register, control: fun.Interface(), middleware: middleware}
-			arr = append(arr, info)
-		}
-		a.control(control)
-	case reflect.Func:
-		info := controlInfo{path: path, control: control, middleware: middleware}
-		arr = append(arr, info)
-	}
-	return arr
-}
-
-func (a *Aurora) analysisStructUrl(path string, control Controller, middleware ...Middleware) map[string][]controlInfo {
-	if control == nil {
-		return nil
-	}
-	httpmethods := make(map[string][]controlInfo)
-	of := reflect.ValueOf(control)
-	switch of.Kind() {
-	case reflect.Ptr:
-		elem := of.Elem()
-		if elem.Kind() == reflect.Ptr {
-			return nil
-		}
-		if elem.Kind() != reflect.Struct {
-			return nil
-		}
-		methods := of.NumMethod()
-		for i := 0; i < methods; i++ {
-			method := of.Type().Method(i)
-			//if !method.IsExported() {
-			//	continue
-			//}
-			register := urlRegister(method.Name)
-			index := strings.Index(register, "/")
-			s := register[:index]
-			register = register[index+1:]
-			m := strings.ToUpper(s)
-			if m == http.MethodPost || m == http.MethodGet || m == http.MethodPut || m == http.MethodDelete {
-				if _, b := httpmethods[m]; !b {
-					httpmethods[m] = make([]controlInfo, 0)
-				}
-				fun := of.Method(i)
-				info := controlInfo{path: path + "/" + register, control: fun.Interface(), middleware: middleware}
-				httpmethods[m] = append(httpmethods[m], info)
-			}
-		}
-		a.control(control)
-	case reflect.Struct:
-		methods := of.NumMethod()
-		for i := 0; i < methods; i++ {
-			method := of.Type().Method(i)
-			//if !method.IsExported() {
-			//	continue
-			//}
-			register := urlRegister(method.Name)
-			index := strings.Index(register, "/")
-			s := register[:index]
-			register = register[index+1:]
-			m := strings.ToUpper(s)
-			if m == http.MethodPost || m == http.MethodGet || m == http.MethodPut || m == http.MethodDelete {
-				if _, b := httpmethods[m]; !b {
-					httpmethods[m] = make([]controlInfo, 0)
-				}
-				fun := of.Method(i)
-				info := controlInfo{path: path + "/" + register, control: fun.Interface(), middleware: middleware}
-				httpmethods[m] = append(httpmethods[m], info)
-			}
-
-		}
-		a.control(control)
-	}
-	return httpmethods
 }
 
 func urlRegister(p string) string {
