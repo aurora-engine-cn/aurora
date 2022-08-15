@@ -125,10 +125,14 @@ func NewAurora(option ...Option) *Aurora {
 	a.printBanner()
 	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 	a.control(a)
+
+	// 加载配置文件
 	a.viperConfig()
+
+	// 加载 consul 配置
 	a.consul()
 
-	//执行配置项
+	// 执行配置项
 	for _, opt := range option {
 		opt(a)
 	}
