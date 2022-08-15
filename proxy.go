@@ -39,8 +39,6 @@ func (sp *Proxy) start() []reflect.Value {
 	c.ctx = sp.Ctx
 	c.UrlVariable = sp.UrlVariable
 	c.RESTFul = sp.args
-	// 请求参数解析
-	c.analysisInput(sp.Req, sp.Rew, sp.Ctx)
 	//执行中间件
 	middlewares := sp.middleware
 	for _, middleware := range middlewares {
@@ -48,6 +46,9 @@ func (sp *Proxy) start() []reflect.Value {
 			goto end
 		}
 	}
+	// 请求参数解析
+	c.analysisInput(sp.Req, sp.Rew, sp.Ctx)
+
 	// 执行请求方法
 	sp.values = c.invoke()
 
