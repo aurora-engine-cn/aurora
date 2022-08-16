@@ -125,7 +125,6 @@ func (c *ConfigCenter) GetStringMapStringSlice(key string) map[string][]string {
 func (engine *Engine) viperConfig() {
 	var ConfigPath string
 	var err error
-
 	if engine.configpath == "" {
 		//检索配置文件所在路径
 		filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
