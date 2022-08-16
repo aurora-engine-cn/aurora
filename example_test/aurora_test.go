@@ -44,7 +44,7 @@ type Post struct {
 
 // TestPost Post请求测试
 func TestPost(t *testing.T) {
-	a := aurora.NewAurora()
+	a := aurora.New()
 	a.Post("/post1", func(post Post) {
 		fmt.Println(post)
 	})
@@ -65,7 +65,7 @@ func TestPost(t *testing.T) {
 
 // TestBenchmark 压测api
 func TestBenchmark(t *testing.T) {
-	a := aurora.NewAurora()
+	a := aurora.New()
 	a.Get("/", func() string {
 		return ""
 	})
@@ -111,7 +111,7 @@ func Api() {
 
 // TestRouter 路由测试
 func TestRouter(t *testing.T) {
-	a := aurora.NewAurora(aurora.Debug())
+	a := aurora.New(aurora.Debug())
 	for s, i := range api {
 		a.Get(s, i)
 	}
@@ -143,7 +143,7 @@ func TestRESTFul(t *testing.T) {
 }
 
 func TestC(t *testing.T) {
-	a := aurora.NewAurora()
+	a := aurora.New()
 	a.Use(Get())
 }
 

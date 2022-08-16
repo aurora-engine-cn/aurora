@@ -13,7 +13,7 @@ const aurora = "aurora"
 // Proxy
 // 主要完成 接口调用 和 处理响应
 type Proxy struct {
-	*Aurora
+	*Engine
 	Rew         http.ResponseWriter
 	Req         *http.Request
 	errType     reflect.Type
@@ -73,7 +73,7 @@ func (sp *Proxy) resultHandler() {
 	}
 	header := sp.Rew.Header()
 	if header.Get(contentType) == "" {
-		header.Set(contentType, sp.Aurora.resourceMapType[".json"])
+		header.Set(contentType, sp.Engine.resourceMapType[".json"])
 	}
 	for i := 0; i < len(sp.values); i++ {
 		v := sp.values[i].Interface()

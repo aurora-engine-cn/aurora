@@ -45,7 +45,7 @@ func ErrorMsg(err error, msg ...string) {
 // Error 错误类型  类型设计 是一个函数 接收一个 实现了 error 接口的参数
 type Error = interface{}
 
-//错误捕捉器的存储上要进行封装
+// 错误捕捉器的存储上要进行封装
 type catch struct {
 	in  []reflect.Value
 	fun reflect.Value
@@ -56,8 +56,8 @@ func (c *catch) invoke(err reflect.Value) []reflect.Value {
 	return c.fun.Call(c.in)
 }
 
-func (a *Aurora) Catch(err Error) {
-	a.router.Catch(err)
+func (engine *Engine) Catch(err Error) {
+	engine.router.Catch(err)
 }
 
 func (r *route) registerErrorCatch(err Error) {

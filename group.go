@@ -11,7 +11,7 @@ group 路由分组
 group 可以设定局部的全局Use
 */
 type Group struct {
-	a          *Aurora
+	a          *Engine
 	middleware []Middleware
 	prefix     string
 }
