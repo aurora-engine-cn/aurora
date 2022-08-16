@@ -6,7 +6,6 @@ import (
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -77,10 +76,11 @@ func (c *controller) InitArgs() {
 		}
 		//对非内部参数进行 字段校验 存在为导出字段需要更改
 		if arguments.Kind() == reflect.Struct || arguments.Kind() == reflect.Ptr {
-			if !checkArguments(value) {
-				//检查存在 未导出字段
-				log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
-			}
+			// 升级高版本 后放开代码
+			//if !checkArguments(value) {
+			//	//检查存在 未导出字段
+			//	log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
+			//}
 		}
 		c.InvokeValues[i] = value
 		//初始化可赋值参数序列，存储可赋值的索引

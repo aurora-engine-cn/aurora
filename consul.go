@@ -54,10 +54,7 @@ func (engine *Engine) consul() {
 		panic("configuration refresh time format error")
 	}
 	refresh, err := strconv.Atoi(ref[:len(ref)-1])
-	if err != nil {
-		panic(err)
-		return
-	}
+	ErrorMsg(err)
 	// 解析注册地址
 	hosts := strings.Split(registers, ",")
 	// 创建 每个 consul 的 客户端

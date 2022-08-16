@@ -124,12 +124,11 @@ func (c *ConfigCenter) GetStringMapStringSlice(key string) map[string][]string {
 // viperConfig 配置并加载 application.yml 配置文件
 func (engine *Engine) viperConfig() {
 	var ConfigPath string
-
-	// consul 配置中心校验
+	var err error
 
 	if engine.configpath == "" {
 		//检索配置文件所在路径
-		err := filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
+		err = filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
 			//找到配置及文件,基于根目录优先加载最外层的application.yml
 			if !d.IsDir() && (strings.HasSuffix(p, yml) || (strings.HasSuffix(p, yaml))) && ConfigPath == "" {
 				//修复 项目加载配置覆盖，检索项目配置文件，避免内层同名配置文件覆盖外层，这个情况可能发生在 开发者把两个go mod 项目嵌套在一起，导致配置被覆盖
@@ -153,7 +152,7 @@ func (engine *Engine) viperConfig() {
 			&sync.RWMutex{},
 		}
 		cnf.SetConfigFile(ConfigPath)
-		err := cnf.ReadInConfig()
+		err = cnf.ReadInConfig()
 		ErrorMsg(err)
 		engine.config = cnf
 	}

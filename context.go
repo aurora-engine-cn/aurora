@@ -2,7 +2,6 @@ package aurora
 
 import (
 	"net/http"
-	"net/url"
 	"reflect"
 )
 
@@ -52,21 +51,4 @@ func (c Ctx) Return(value ...interface{}) {
 		values = append(values, reflect.ValueOf(v))
 	}
 	c["AuroraValues"] = values
-}
-
-// SetCookie 设置一个 Cookie
-func (c Ctx) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
-	if path == "" {
-		path = "/"
-	}
-	http.SetCookie(c.Response(), &http.Cookie{
-		Name:     name,
-		Value:    url.QueryEscape(value),
-		MaxAge:   maxAge,
-		Path:     path,
-		Domain:   domain,
-		SameSite: http.SameSiteDefaultMode,
-		Secure:   secure,
-		HttpOnly: httpOnly,
-	})
 }

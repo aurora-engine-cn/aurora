@@ -147,6 +147,7 @@ func (r *route) addRoute(method, path string, control Controller, middleware ...
 // method: 请求类型(日志相关参数)
 // path: 插入的路径(日志相关参数)
 func (r *route) add(method string, root *node, Path string, path string, fun Controller, middleware ...Middleware) {
+	var l string
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
 	control := &controller{Fun: vf, FunType: vt, Engine: r.Engine}
@@ -160,7 +161,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.Control = control
 		root.middleware = middleware
 
-		l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		r.Debug(l)
 		return
 	}
@@ -174,7 +175,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.middleware = middleware
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
-		l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		r.Debug(l)
 		return
 	}
@@ -229,7 +230,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 					Child:      nil,
 				}
 				root.Child = append(root.Child, n)
-				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				r.Debug(l)
 				return
 			}
@@ -283,7 +284,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 				root.Control = control       //更改当前处理函数
 				root.middleware = middleware //更改当前中间件
 				//此处的操作，大多是处理以竟被注册好的接口进行分裂，注释此处的目的是对日志的控制，被分裂的路径会被二次打印
-				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				r.Debug(l)
 				return
 			}
@@ -472,19 +473,17 @@ star:
 	next = q.next()
 	for next != nil {
 		n := next.value
-		if n.Control != nil {
-			if reqCount == n.Count {
-				if !strings.Contains(n.FullPath, "{") {
-					if path == n.FullPath {
-						return n, nil, nil
-					}
-				} else {
-					urlArgs, Aargs := analysisRESTFul(n, path)
-					if urlArgs == nil {
-						goto next
-					}
-					return n, urlArgs, Aargs
+		if n.Control != nil && reqCount == n.Count {
+			if !strings.Contains(n.FullPath, "{") {
+				if path == n.FullPath {
+					return n, nil, nil
 				}
+			} else {
+				urlArgs, Aargs := analysisRESTFul(n, path)
+				if urlArgs == nil {
+					goto next
+				}
+				return n, urlArgs, Aargs
 			}
 		}
 	next:
