@@ -14,9 +14,9 @@ import (
 	"sync"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.   \n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :  \n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |, \n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/ \n|       Aurora Web framework (v2.0.1-beat.1)       |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.1.1)           |"
 
-type Aurora struct {
+type Engine struct {
 	// 日志
 	Log
 	// 文件上传大小配置
@@ -91,12 +91,12 @@ type Aurora struct {
 	consulCenter *ConsulCenter
 }
 
-func NewAurora(option ...Option) *Aurora {
+func New(option ...Option) *Engine {
 	//初始化日志
 	logs := logrus.New()
 	logs.SetFormatter(&Formatter{})
 	logs.Out = os.Stdout
-	a := &Aurora{
+	engine := &Engine{
 		port: "8080", //默认端口号
 		router: &route{
 			mx: &sync.Mutex{},
@@ -117,120 +117,124 @@ func NewAurora(option ...Option) *Aurora {
 	}
 	//初始化基本属性
 
-	a.router.Aurora = a
-	a.Log = logs
+	engine.router.Engine = engine
+	engine.Log = logs
 	projectRoot, _ := os.Getwd()
-	a.projectRoot = projectRoot //初始化项目路径信息
-	a.component = newIoc(a.Log)
-	a.printBanner()
-	a.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-	a.control(a)
-	a.viperConfig()
-	a.consul()
+	engine.projectRoot = projectRoot //初始化项目路径信息
+	engine.component = newIoc(engine.Log)
+	engine.printBanner()
+	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
+	engine.control(engine)
 
-	//执行配置项
+	// 加载配置文件
+	engine.viperConfig()
+
+	// 加载 consul 配置
+	engine.consul()
+
+	// 执行配置项
 	for _, opt := range option {
-		opt(a)
+		opt(engine)
 	}
 
 	var middleware Middleware
 	var constructors Constructors
 	// 中间件配置项
-	a.use[reflect.TypeOf(middleware)] = useMiddleware
+	engine.use[reflect.TypeOf(middleware)] = useMiddleware
 
 	// 静态资源头配置项，主要设置可能不存在的资源头，或者过时的子资源
-	a.use[reflect.TypeOf(ContentType{})] = useContentType
+	engine.use[reflect.TypeOf(ContentType{})] = useContentType
 
 	// 匿名组件
-	a.use[reflect.TypeOf(constructors)] = useConstructors
+	engine.use[reflect.TypeOf(constructors)] = useConstructors
 	// 命名组件
-	a.use[reflect.TypeOf(Component{})] = useComponent
+	engine.use[reflect.TypeOf(Component{})] = useComponent
 
 	// log 日志
-	a.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
+	engine.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
 
 	// server
-	a.use[reflect.TypeOf(&http.Server{})] = useServe
+	engine.use[reflect.TypeOf(&http.Server{})] = useServe
 
-	a.Info("Initialize the built-in system request parameters")
+	engine.Info("Initialize the built-in system request parameters")
 	// 初始化系统参数
-	if a.intrinsic == nil {
-		a.intrinsic = make(map[string]Constructor)
+	if engine.intrinsic == nil {
+		engine.intrinsic = make(map[string]Constructor)
 	}
-	a.intrinsic[reflect.TypeOf(&http.Request{}).String()] = req
-	a.intrinsic[reflect.TypeOf(new(http.ResponseWriter)).Elem().String()] = rew
-	a.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
-	a.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
+	engine.intrinsic[reflect.TypeOf(&http.Request{}).String()] = req
+	engine.intrinsic[reflect.TypeOf(new(http.ResponseWriter)).Elem().String()] = rew
+	engine.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
+	engine.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
 
 	//加载静态资源头
-	a.loadResourceHead()
+	engine.loadResourceHead()
 
-	return a
+	return engine
 }
 
 // Use 使用组件,把组件加载成为对应的配置
-func (a *Aurora) Use(Configuration ...interface{}) {
+func (engine *Engine) Use(Configuration ...interface{}) {
 	if Configuration == nil {
 		return
 	}
-	if a.options == nil {
-		a.options = make([]UseOption, 0)
+	if engine.options == nil {
+		engine.options = make([]UseOption, 0)
 	}
 	var opt UseOption
 	for _, u := range Configuration {
 		rt := reflect.TypeOf(u)
-		if useOption, b := a.use[rt]; b {
+		if useOption, b := engine.use[rt]; b {
 			opt = useOption(u)
-			a.options = append(a.options, opt)
+			engine.options = append(engine.options, opt)
 			continue
 		}
 		//检查是否是实现 Config配置接口
 		if rt.Implements(reflect.TypeOf(new(Config)).Elem()) {
 			opt = useConfig(u)
-			a.options = append(a.options, opt)
+			engine.options = append(engine.options, opt)
 			continue
 		}
 		opt = useControl(u)
-		a.options = append(a.options, opt)
+		engine.options = append(engine.options, opt)
 	}
 }
 
 // Run 启动服务器
-func (a *Aurora) run() error {
+func (engine *Engine) run() error {
 	// 启动路由
-	a.startRouter()
+	engine.startRouter()
 
 	var p, certFile, keyFile string
-	if a.config != nil {
-		p = a.config.GetString("aurora.server.port")
-		certFile = a.config.GetString("aurora.server.tls.certFile")
-		keyFile = a.config.GetString("aurora.server.tls.keyFile")
+	if engine.config != nil {
+		p = engine.config.GetString("aurora.server.port")
+		certFile = engine.config.GetString("aurora.server.tls.certFile")
+		keyFile = engine.config.GetString("aurora.server.tls.keyFile")
 	}
 	if p != "" {
-		a.port = p
+		engine.port = p
 	}
-	l, err := net.Listen("tcp", ":"+a.port)
+	l, err := net.Listen("tcp", ":"+engine.port)
 	if err != nil {
 		return err
 	}
-	a.ln = l
+	engine.ln = l
 	if certFile != "" && keyFile != "" {
 
-		return a.server.ServeTLS(l, certFile, keyFile)
+		return engine.server.ServeTLS(l, certFile, keyFile)
 	}
-	return a.server.Serve(l)
+	return engine.server.Serve(l)
 }
 
 // dependencyInjection Control 依赖加载
 // controllers 属性中存储的都是 匿名组件类型
-func (a *Aurora) dependencyInjection() {
-	if a.controllers == nil {
+func (engine *Engine) dependencyInjection() {
+	if engine.controllers == nil {
 		return
 	}
-	a.Info("Initialize load controller dependencies")
-	l := len(a.controllers)
+	engine.Info("Initialize load controller dependencies")
+	l := len(engine.controllers)
 	for i := 0; i < l; i++ {
-		control := *a.controllers[i]
+		control := *engine.controllers[i]
 		if control.Kind() == reflect.Ptr {
 			control = control.Elem()
 		}
@@ -239,10 +243,10 @@ func (a *Aurora) dependencyInjection() {
 			//查询 value 属性 读取config中的基本属性
 			if v, b := field.Tag.Lookup("value"); b {
 				if v == "" {
-					a.Warn("value tag value is ''")
+					engine.Warn("value tag value is ''")
 					continue
 				}
-				get := a.config.Get(v)
+				get := engine.config.Get(v)
 				if get == nil {
 					//如果查找结果大小等于0 则表示不存在
 					continue
@@ -255,10 +259,10 @@ func (a *Aurora) dependencyInjection() {
 	}
 }
 
-func (a *Aurora) printBanner() {
+func (engine *Engine) printBanner() {
 	fmt.Printf("%s\n\r", banner)
 }
 
-func (a *Aurora) Root() string {
-	return a.projectRoot
+func (engine *Engine) Root() string {
+	return engine.projectRoot
 }

@@ -122,54 +122,42 @@ func (c *ConfigCenter) GetStringMapStringSlice(key string) map[string][]string {
 }
 
 // viperConfig 配置并加载 application.yml 配置文件
-func (a *Aurora) viperConfig() {
+func (engine *Engine) viperConfig() {
 	var ConfigPath string
-
-	// consul 配置中心校验
-
-	if a.configpath == "" {
+	var err error
+	if engine.configpath == "" {
 		//检索配置文件所在路径
-		err := filepath.WalkDir(a.projectRoot, func(p string, d fs.DirEntry, err error) error {
+		filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
 			//找到配置及文件,基于根目录优先加载最外层的application.yml
-			if !d.IsDir() && (strings.HasSuffix(p, yml) || (strings.HasSuffix(p, yaml))) {
+			if !d.IsDir() && (strings.HasSuffix(p, yml) || (strings.HasSuffix(p, yaml))) && ConfigPath == "" {
 				//修复 项目加载配置覆盖，检索项目配置文件，避免内层同名配置文件覆盖外层，这个情况可能发生在 开发者把两个go mod 项目嵌套在一起，导致配置被覆盖
 				//此处校验，根据检索的更路径，只加载最外层的配置文件
-				if ConfigPath == "" {
-					ConfigPath = p
-				}
+				ConfigPath = p
 			}
 			return nil
 		})
-		ErrorMsg(err, "configuration file retrieval failed, initial configuration failed")
 	} else {
-		ConfigPath = a.configpath
+		ConfigPath = engine.configpath
 	}
 	if ConfigPath == "" {
-		a.config = &ConfigCenter{viper.New(), &sync.RWMutex{}}
+		engine.config = &ConfigCenter{viper.New(), &sync.RWMutex{}}
 		return
 	}
-	if a.config == nil {
+	if engine.config == nil {
 		// 用户没有提供 配置项 则创建默认的配置处理
 		cnf := &ConfigCenter{
 			viper.New(),
 			&sync.RWMutex{},
 		}
 		cnf.SetConfigFile(ConfigPath)
-		err := cnf.ReadInConfig()
+		err = cnf.ReadInConfig()
 		ErrorMsg(err)
-		a.config = cnf
+		engine.config = cnf
 	}
 
 }
 
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
-func (a *Aurora) GetConfig() Config {
-	return a.config
-}
-
-// ViperConfiguration 配置指定配置文件
-func ViperConfiguration(path string) Option {
-	return func(a *Aurora) {
-
-	}
+func (engine *Engine) GetConfig() Config {
+	return engine.config
 }

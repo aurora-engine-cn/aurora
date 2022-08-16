@@ -45,19 +45,19 @@ type views interface {
 
 // ResourceFun w 响应体，path 资源真实路径，rt资源类型
 // 根据rt资源类型去找到对应的resourceMapType 存储的响应头，进行发送资源
-func (a *Aurora) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
-	data := a.readResource(a.projectRoot + a.resource + path)
+func (engine *Engine) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
+	data := engine.readResource(engine.projectRoot + engine.resource + path)
 	if data != nil {
 		h := w.Header()
 		if h.Get(contentType) == "" {
-			h.Set(contentType, a.resourceMapType[rt])
+			h.Set(contentType, engine.resourceMapType[rt])
 		} else {
-			h.Add(contentType, a.resourceMapType[rt])
+			h.Add(contentType, engine.resourceMapType[rt])
 		}
 		sendResource(w, data)
 		return
 	}
-	w.Header().Set(contentType, a.resourceMapType[".json"])
+	w.Header().Set(contentType, engine.resourceMapType[".json"])
 	http.Error(w, "Server static resource does not exist", 500)
 }
 
@@ -71,43 +71,38 @@ func sendResource(w http.ResponseWriter, data []byte) {
 }
 
 // readResource 读取成功则返回结果，失败则返回nil
-func (a *Aurora) readResource(path string) []byte {
+func (engine *Engine) readResource(path string) []byte {
 	if f, err := ioutil.ReadFile(path); err == nil {
 		return f
 	} else {
 		if os.IsNotExist(err) {
-			a.Error(err.Error())
+			engine.Error(err.Error())
 		}
 	}
 	return nil
 }
 
-func (a *Aurora) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
+func (engine *Engine) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
 	if mapping == favicon {
 		ico := ""
-		r := a.resource
+		r := engine.resource
 		if len(r) > 0 {
 			r = r[:len(r)-1]
 		}
 		//检查 静态资源路径是否存在
-		if pathExists(a.projectRoot + r) {
+		if pathExists(engine.projectRoot + r) {
 			//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
-			err := filepath.Walk(a.projectRoot+r, func(path string, info fs.FileInfo, err error) error {
-				if !info.IsDir() && (strings.HasSuffix(path, favicon)) {
-					if ico == "" {
-						ico = path
-					}
+			filepath.Walk(engine.projectRoot+r, func(path string, info fs.FileInfo, err error) error {
+				if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
+					ico = path
 				}
 				return nil
 			})
-			if err != nil {
-				a.Error(err)
-			}
 			if ico == "" {
 				return
 			}
-			resource := a.readResource(ico)
-			w.Header().Set(contentType, a.resourceMapType[t])
+			resource := engine.readResource(ico)
+			w.Header().Set(contentType, engine.resourceMapType[t])
 			w.Write(resource)
 		}
 		return
@@ -123,12 +118,12 @@ func (a *Aurora) resourceHandler(w http.ResponseWriter, req *http.Request, mappi
 	if i := strings.LastIndex(resourceUrl, req.Host); i != -1 {
 		sub = resourceUrl[i+h:] //找到主机信息 截取之后的部分，就找到了 和访问资源相同的字串
 	}
-	slen := len(sub)                //计算相同字串长度
-	m := mapping[slen:]             //把同样的长度截取出去
-	a.resourceFun(w, mapping, m, t) //传递参数进行资源发送
+	slen := len(sub)                     //计算相同字串长度
+	m := mapping[slen:]                  //把同样的长度截取出去
+	engine.resourceFun(w, mapping, m, t) //传递参数进行资源发送
 }
 
-func (a *Aurora) loadResourceHead() {
+func (engine *Engine) loadResourceHead() {
 	v := viper.New()
 	//设置viper读取json格式的配置
 	v.SetConfigType("json")
@@ -136,7 +131,7 @@ func (a *Aurora) loadResourceHead() {
 	err := v.ReadConfig(bytes.NewBuffer(static))
 	ErrorMsg(err, "failed to import static resource header information requested by the server")
 	s := v.GetStringMapString("type")
-	a.resourceMapType = s
+	engine.resourceMapType = s
 }
 
 func pathExists(path string) bool {
