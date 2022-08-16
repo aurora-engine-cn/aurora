@@ -55,7 +55,7 @@ if err != nil {
 ```
 
 ## 文档
-有关更多的使用操作请查看 [最新在线文档](https://aurora-go.github.io)，如果您觉得 aurora 不错，或者对您有帮助，请赏颗星吧！
+有关更多的使用操作请查看 [最新在线文档](https://go-aurora-engine.github.io/)，如果您觉得 aurora 不错，或者对您有帮助，请赏颗星吧！
 
 ## 关于作者
 
