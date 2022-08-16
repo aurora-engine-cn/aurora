@@ -92,17 +92,12 @@ func (engine *Engine) resourceHandler(w http.ResponseWriter, req *http.Request, 
 		//检查 静态资源路径是否存在
 		if pathExists(engine.projectRoot + r) {
 			//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
-			err := filepath.Walk(engine.projectRoot+r, func(path string, info fs.FileInfo, err error) error {
-				if !info.IsDir() && (strings.HasSuffix(path, favicon)) {
-					if ico == "" {
-						ico = path
-					}
+			filepath.Walk(engine.projectRoot+r, func(path string, info fs.FileInfo, err error) error {
+				if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
+					ico = path
 				}
 				return nil
 			})
-			if err != nil {
-				engine.Error(err)
-			}
 			if ico == "" {
 				return
 			}
