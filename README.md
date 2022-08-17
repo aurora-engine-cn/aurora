@@ -17,7 +17,7 @@ go1.16+
 ```go
 // Server 嵌套Aurora定义一个服务 实例
 type Server struct {
-    *aurora.Aurora
+    *aurora.Engine
 }
 ```
 实现 `aurora.Application` 接口中的两个方法, 接口定义如下,除了`Server()` 和 `Router()` 其他方法均由 `*aurora.Aurora` 实现了
@@ -47,7 +47,7 @@ func (server *Server) Router() {
 
 通过执行器启动web服务即可
 ```go
-err := aurora.Run(&Server{aurora.NewAurora(aurora.Debug())})
+err := aurora.Run(&Server{aurora.New(aurora.Debug())})
 if err != nil {
 	fmt.Println(err)
 	return
