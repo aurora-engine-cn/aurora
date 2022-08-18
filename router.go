@@ -433,12 +433,6 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 		ctx[iocs] = r.component
 		ctx[auroraMaxMultipartMemory] = r.MaxMultipartMemory
 	}
-	if r.isStatic(path, rw, req) {
-		return nil, nil, nil, nil
-	}
-	if index := strings.Index(path, "."); index != -1 {
-		path = r.fileService
-	}
 	// 全局中间件
 	middlewares := r.middleware
 	if middlewares != nil {
@@ -450,6 +444,12 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 				return nil, nil, nil, nil
 			}
 		}
+	}
+	if r.isStatic(path, rw, req) {
+		return nil, nil, nil, nil
+	}
+	if index := strings.Index(path, "."); index != -1 {
+		path = r.fileService
 	}
 	//查找指定的Method树
 	if _, ok := r.tree[method]; !ok {
