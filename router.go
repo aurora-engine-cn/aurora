@@ -433,12 +433,6 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 		ctx[iocs] = r.component
 		ctx[auroraMaxMultipartMemory] = r.MaxMultipartMemory
 	}
-	if r.isStatic(path, rw, req) {
-		return nil, nil, nil, nil
-	}
-	if index := strings.Index(path, "."); index != -1 {
-		path = r.fileService
-	}
 	// 全局中间件
 	middlewares := r.middleware
 	if middlewares != nil {
@@ -450,6 +444,12 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 				return nil, nil, nil, nil
 			}
 		}
+	}
+	if r.isStatic(path, rw, req) {
+		return nil, nil, nil, nil
+	}
+	if index := strings.Index(path, "."); index != -1 {
+		path = r.fileService
 	}
 	//查找指定的Method树
 	if _, ok := r.tree[method]; !ok {
@@ -464,6 +464,7 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 	return c, u, args, ctx
 }
 
+// 路由树查询
 func (r *route) bfs(root *node, path string) (*node, []string, map[string]interface{}) {
 	var next *element
 	reqCount := strings.Count(path, "/")
@@ -507,6 +508,8 @@ func (engine *Engine) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	engine.handle(c, u, args, rw, req, ctx)
 
 }
+
+// 请求处理
 func (engine *Engine) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx Ctx) {
 	p := engine.proxyPool.Get().(*Proxy)
 	p.Rew = rw
@@ -522,6 +525,7 @@ func (engine *Engine) handle(c *node, u []string, args map[string]interface{}, r
 	engine.proxyPool.Put(p)
 }
 
+// 获取注册接口函数名称
 func getFunName(fun interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
 }
@@ -545,6 +549,7 @@ func urlHead(url string) string {
 	return url[index:]
 }
 
+// 处理请求接口 后缀
 func urlEnd(url string) string {
 	if url == "/" {
 		return url
@@ -563,6 +568,7 @@ func urlEnd(url string) string {
 	return url[:index-1]
 }
 
+// 检查 请求接口 格式规范
 func urlCheck(url string) string {
 	re := regexp.MustCompile(`/{2,}`)
 	all := re.FindAll([]byte(url), -1)
