@@ -1,9 +1,9 @@
 module gitee.com/aurora-engine/aurora
 
-go 1.16
+go 1.19
 
 require (
-	github.com/hashicorp/consul/api v1.12.0
+	github.com/hashicorp/consul/api v1.14.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/prometheus/common v0.26.0

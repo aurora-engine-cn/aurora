@@ -6,6 +6,7 @@ import (
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -77,10 +78,10 @@ func (c *controller) InitArgs() {
 		//对非内部参数进行 字段校验 存在为导出字段需要更改
 		if arguments.Kind() == reflect.Struct || arguments.Kind() == reflect.Ptr {
 			// 升级高版本 后放开代码
-			//if !checkArguments(value) {
-			//	//检查存在 未导出字段
-			//	log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
-			//}
+			if !checkArguments(value) {
+				//检查存在 未导出字段
+				log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
+			}
 		}
 		c.InvokeValues[i] = value
 		//初始化可赋值参数序列，存储可赋值的索引
@@ -106,11 +107,11 @@ func checkArguments(s reflect.Value) bool {
 	st := v.Type()
 	for i := 0; i < st.NumField(); i++ {
 		//兼容1.16 取消校验
-		//field := st.Field(i)
-		// 校验当前结构体的字段是否是导出状态
-		//if !field.IsExported() {
-		//	return false
-		//}
+		field := st.Field(i)
+		//校验当前结构体的字段是否是导出状态
+		if !field.IsExported() {
+			return false
+		}
 		//对该字段进行递归检查
 		if !checkArguments(v.Field(i)) {
 			return false
