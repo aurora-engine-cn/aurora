@@ -187,7 +187,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 		case reflect.String:
 			variable := value.(string)
 			arguments.SetString(variable)
-		case reflect.Int:
+		case reflect.Int, reflect.Int32, reflect.Int64:
 			var variable int64
 			switch value.(type) {
 			case string:
@@ -202,7 +202,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				variable = int64(value.(int))
 			}
 			arguments.SetInt(variable)
-		case reflect.Float64:
+		case reflect.Float32, reflect.Float64:
 			var variable float64
 			switch value.(type) {
 			case string:
