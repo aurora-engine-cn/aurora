@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -80,7 +81,7 @@ func (c *controller) InitArgs() {
 			// 升级高版本 后放开代码
 			if !checkArguments(value) {
 				//检查存在 未导出字段
-				log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
+				log.Fatalln("The index: ", i, "'", arguments.String(), "' parameter is checked to exist as an export field, please check the field permission")
 			}
 		}
 		c.InvokeValues[i] = value
@@ -103,6 +104,12 @@ func checkArguments(s reflect.Value) bool {
 		return checkArguments(elem)
 	} else {
 		v = s
+	}
+
+	// 针对一些类型 跳过检查 比如时间 time.Time ,有些内置类型需要跳过检查，伴随可能出现的bug 在接口初始化赋值时候需要匹配 待修改
+	switch v.Interface().(type) {
+	case time.Time:
+		return true
 	}
 	st := v.Type()
 	for i := 0; i < st.NumField(); i++ {
