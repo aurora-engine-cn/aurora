@@ -137,15 +137,15 @@ func (i *ioc) dependence(ref string, value reflect.Value) error {
 
 		// r 是我们需要去 id主容器 中查找的依赖项
 		if r, b := field.Tag.Lookup("ref"); b {
-			//if r == "" {
-			//	//检测 ref 属性是否为空字符串,为空则跳过
-			//	continue
-			//}
-			////检查是否导出,被操纵字段必须是可导出的
-			//if !field.IsExported() {
-			//	//不可导出出字段无法赋值
-			//	return errors.New("ref attribute on non-exported field, cannot complete initialization")
-			//}
+			if r == "" {
+				//检测 ref 属性是否为空字符串,为空则跳过
+				continue
+			}
+			//检查是否导出,被操纵字段必须是可导出的
+			if !field.IsExported() {
+				//不可导出出字段无法赋值
+				return errors.New("ref attribute on non-exported field, cannot complete initialization")
+			}
 			var va *reflect.Value
 			//开始查询 tag 的 引用id 是否在主容器中
 			load, ok := i.id.Load(r)
