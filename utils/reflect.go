@@ -27,11 +27,12 @@ func Injection(field, value reflect.Value) error {
 	case reflect.Ptr:
 		if field.IsNil() {
 			// 当前指针为空 设置指针指向value的地址
-			if value.Elem().CanAddr() {
+			if value.Elem().CanAddr() && field.CanSet() {
 				//权限上面的校验
-				if field.CanSet() {
-					field.Set(value.Elem().Addr())
-				}
+				//if field.CanSet() {
+				//	field.Set(value.Elem().Addr())
+				//}
+				field.Set(value.Elem().Addr())
 			}
 			return nil
 		}
@@ -105,10 +106,8 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 			FieldName[kebab] = f.Name
 			FieldName[lowerCamel] = f.Name
 			//支持标签定义，以防出现 strcase 库不稳定的时候 通过json来自定义
-			if s, b := f.Tag.Lookup("json"); b {
-				if s != "" {
-					FieldName[s] = f.Name
-				}
+			if s := f.Tag.Get("json"); s != "" {
+				FieldName[s] = f.Name
 			}
 		}
 	}
@@ -188,7 +187,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 		case reflect.String:
 			variable := value.(string)
 			arguments.SetString(variable)
-		case reflect.Int:
+		case reflect.Int, reflect.Int32, reflect.Int64:
 			var variable int64
 			switch value.(type) {
 			case string:
@@ -203,7 +202,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				variable = int64(value.(int))
 			}
 			arguments.SetInt(variable)
-		case reflect.Float64:
+		case reflect.Float32, reflect.Float64:
 			var variable float64
 			switch value.(type) {
 			case string:

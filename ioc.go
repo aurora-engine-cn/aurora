@@ -14,14 +14,16 @@ import (
 
 */
 
-func newIoc() *ioc {
+func newIoc(log Log) *ioc {
 	return &ioc{
+		Log:   log,
 		id:    &sync.Map{},
 		first: make(map[string]*reflect.Value),
 	}
 }
 
 type ioc struct {
+	Log
 	kv    map[string]interface{}    // 初始缓存容器
 	first map[string]*reflect.Value //一级,存放有部分属性未初始化的容器
 	id    *sync.Map                 //主缓存容器
@@ -46,7 +48,7 @@ func (i *ioc) get(ref string) *reflect.Value {
 	return v
 }
 
-// putIn 想容器装载属性,不允许覆盖已经存在的 属性实例，主要提供对外使用.
+// putIn 向容器装载属性,不允许覆盖已经存在的 属性实例，主要提供对外使用.
 // 它允许覆盖 初级缓存中的配置项
 func (i *ioc) putIn(ref string, value interface{}) error {
 	if _, b := i.id.Load(ref); b {
@@ -135,15 +137,15 @@ func (i *ioc) dependence(ref string, value reflect.Value) error {
 
 		// r 是我们需要去 id主容器 中查找的依赖项
 		if r, b := field.Tag.Lookup("ref"); b {
-			//if r == "" {
-			//	//检测 ref 属性是否为空字符串,为空则跳过
-			//	continue
-			//}
-			////检查是否导出,被操纵字段必须是可导出的
-			//if !field.IsExported() {
-			//	//不可导出出字段无法赋值
-			//	return errors.New("ref attribute on non-exported field, cannot complete initialization")
-			//}
+			if r == "" {
+				//检测 ref 属性是否为空字符串,为空则跳过
+				continue
+			}
+			//检查是否导出,被操纵字段必须是可导出的
+			if !field.IsExported() {
+				//不可导出出字段无法赋值
+				return errors.New("ref attribute on non-exported field, cannot complete initialization")
+			}
 			var va *reflect.Value
 			//开始查询 tag 的 引用id 是否在主容器中
 			load, ok := i.id.Load(r)

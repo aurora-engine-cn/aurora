@@ -2,13 +2,16 @@ package aurora
 
 import (
 	"errors"
+	"fmt"
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -29,7 +32,7 @@ type controlInfo struct {
 }
 
 type controller struct {
-	*Aurora
+	*Engine
 	//上下文数据
 	ctx Ctx
 	p   *Proxy
@@ -68,16 +71,17 @@ func (c *controller) InitArgs() {
 		value := reflect.New(arguments).Elem()
 		//初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
 		key := arguments.String()
-		if _, b := c.Aurora.intrinsic[key]; b {
+		if _, b := c.Engine.intrinsic[key]; b {
 			c.Args[i] = key
 			c.InvokeValues[i] = value
 			continue
 		}
 		//对非内部参数进行 字段校验 存在为导出字段需要更改
 		if arguments.Kind() == reflect.Struct || arguments.Kind() == reflect.Ptr {
+			// 升级高版本 后放开代码
 			if !checkArguments(value) {
 				//检查存在 未导出字段
-				log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
+				log.Fatalln("The index: ", i, "'", arguments.String(), "' parameter is checked to exist as an export field, please check the field permission")
 			}
 		}
 		c.InvokeValues[i] = value
@@ -101,14 +105,20 @@ func checkArguments(s reflect.Value) bool {
 	} else {
 		v = s
 	}
+
+	// 针对一些类型 跳过检查 比如时间 time.Time ,有些内置类型需要跳过检查，伴随可能出现的bug 在接口初始化赋值时候需要匹配 待修改
+	switch v.Interface().(type) {
+	case time.Time:
+		return true
+	}
 	st := v.Type()
 	for i := 0; i < st.NumField(); i++ {
 		//兼容1.16 取消校验
-		//field := st.Field(i)
-		// 校验当前结构体的字段是否是导出状态
-		//if !field.IsExported() {
-		//	return false
-		//}
+		field := st.Field(i)
+		//校验当前结构体的字段是否是导出状态
+		if !field.IsExported() {
+			return false
+		}
 		//对该字段进行递归检查
 		if !checkArguments(v.Field(i)) {
 			return false
@@ -120,12 +130,17 @@ func checkArguments(s reflect.Value) bool {
 // invoke 接口调用
 func (c *controller) invoke() []reflect.Value {
 	//before
+	// 结构体参数约束校验
+	err := c.checkConstrain()
+	if err != nil {
+		return []reflect.Value{reflect.ValueOf(err)}
+	}
 	r := c.Fun.Call(c.InvokeValues)
 	//after
 	return r
 }
 
-//入参解析
+// 入参解析
 func (c *controller) analysisInput(request *http.Request, response http.ResponseWriter, ctx Ctx) {
 	// var values []string 用于接收 参数列表，该列表顺序规则为(rest full URL参数永远放在最前):
 	// values:   [rest ful路径参数,GET 请求参数,POST请求体参数]
@@ -175,7 +190,7 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		var data interface{}
 		var err error
-		if vr, b := c.p.Aurora.intrinsic[v]; b {
+		if vr, b := c.p.Engine.intrinsic[v]; b {
 			prama := vr(c.p)
 			pv := reflect.ValueOf(prama)
 			if !pv.Type().AssignableTo(c.InvokeValues[i].Type()) {
@@ -281,17 +296,18 @@ func postRequest(request *http.Request, c *controller) []string {
 }
 
 // Control 初始化装配结构体依赖 control 参数必须是指针
-func (a *Aurora) control(control Controller) {
+func (engine *Engine) control(control Controller) {
 	value, err := checkControl(control)
 	ErrorMsg(err)
-	if a.controllers == nil {
-		a.controllers = make([]*reflect.Value, 0)
+	if engine.controllers == nil {
+		engine.controllers = make([]*reflect.Value, 0)
 	}
-	a.controllers = append(a.controllers, value)
+	engine.controllers = append(engine.controllers, value)
 	// 把处理器注册进 ioc , 默认为类型名称
 	tf := reflect.TypeOf(control)
-	err = a.component.putIn(tf.String(), control)
+	err = engine.component.putIn(tf.String(), control)
 	ErrorMsg(err)
+	engine.Info(tf.String() + " initialization joins ioc container management")
 }
 
 // checkControl 校验处理器的规范形式
@@ -312,36 +328,38 @@ func checkControl(control Controller) (*reflect.Value, error) {
 	return &v, nil
 }
 
-const ref = "ref"
-
-// dependencyInjection Control 依赖加载
-func (a *Aurora) dependencyInjection() {
-	if a.controllers == nil {
-		return
-	}
-	l := len(a.controllers)
-	for i := 0; i < l; i++ {
-		control := *a.controllers[i]
-		if control.Kind() == reflect.Ptr {
-			control = control.Elem()
+// 检查结构体参数中的约束是否满足对应检查
+func (c *controller) checkConstrain() error {
+	for i := 0; i < len(c.InvokeValues); i++ {
+		if ok, err := check(c.InvokeValues[i]); !ok {
+			return fmt.Errorf("'%s.%s' constraint check failed", c.InvokeValues[i].Type().String(), err.Error())
 		}
-		for j := 0; j < control.NumField(); j++ {
-			field := control.Type().Field(j)
-			//查询 value 属性 读取config中的基本属性
-			if v, b := field.Tag.Lookup("value"); b {
-				if v == "" {
-					a.Warn("value tag value is ''")
-					continue
+	}
+	return nil
+}
+
+func check(value reflect.Value) (bool, error) {
+	if value.Kind() == reflect.Ptr {
+		return check(value.Elem())
+	}
+	if value.Kind() == reflect.Struct {
+		// 校验各个 字段的 tar
+		fields := value.NumField()
+		for i := 0; i < fields; i++ {
+			field := value.Type().Field(i)
+			tag := field.Tag
+
+			// 检查 empty 空值校验
+			empty := tag.Get("empty")
+			if empty != "" {
+				parseBool, err := strconv.ParseBool(empty)
+				ErrorMsg(err, "tag:empty '"+empty+"' value could not be parsed")
+				if value.Field(i).IsZero() && !parseBool {
+					// 校验不通过
+					return false, fmt.Errorf("%s", field.Name)
 				}
-				get := a.config.Get(v)
-				if get == nil {
-					//如果查找结果大小等于0 则表示不存在
-					continue
-				}
-				//把查询到的 value 初始化给指定字段
-				err := utils.StarAssignment(control.Field(j), get)
-				ErrorMsg(err)
 			}
 		}
 	}
+	return true, nil
 }
