@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -31,7 +32,7 @@ type controlInfo struct {
 }
 
 type controller struct {
-	*Aurora
+	*Engine
 	//上下文数据
 	ctx Ctx
 	p   *Proxy
@@ -70,16 +71,17 @@ func (c *controller) InitArgs() {
 		value := reflect.New(arguments).Elem()
 		//初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
 		key := arguments.String()
-		if _, b := c.Aurora.intrinsic[key]; b {
+		if _, b := c.Engine.intrinsic[key]; b {
 			c.Args[i] = key
 			c.InvokeValues[i] = value
 			continue
 		}
 		//对非内部参数进行 字段校验 存在为导出字段需要更改
 		if arguments.Kind() == reflect.Struct || arguments.Kind() == reflect.Ptr {
+			// 升级高版本 后放开代码
 			if !checkArguments(value) {
 				//检查存在 未导出字段
-				log.Fatalln("The index: ", i, " parameter is checked to exist as an export field, please check the field permission")
+				log.Fatalln("The index: ", i, "'", arguments.String(), "' parameter is checked to exist as an export field, please check the field permission")
 			}
 		}
 		c.InvokeValues[i] = value
@@ -103,14 +105,20 @@ func checkArguments(s reflect.Value) bool {
 	} else {
 		v = s
 	}
+
+	// 针对一些类型 跳过检查 比如时间 time.Time ,有些内置类型需要跳过检查，伴随可能出现的bug 在接口初始化赋值时候需要匹配 待修改
+	switch v.Interface().(type) {
+	case time.Time:
+		return true
+	}
 	st := v.Type()
 	for i := 0; i < st.NumField(); i++ {
 		//兼容1.16 取消校验
-		//field := st.Field(i)
-		// 校验当前结构体的字段是否是导出状态
-		//if !field.IsExported() {
-		//	return false
-		//}
+		field := st.Field(i)
+		//校验当前结构体的字段是否是导出状态
+		if !field.IsExported() {
+			return false
+		}
 		//对该字段进行递归检查
 		if !checkArguments(v.Field(i)) {
 			return false
@@ -182,7 +190,7 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		var data interface{}
 		var err error
-		if vr, b := c.p.Aurora.intrinsic[v]; b {
+		if vr, b := c.p.Engine.intrinsic[v]; b {
 			prama := vr(c.p)
 			pv := reflect.ValueOf(prama)
 			if !pv.Type().AssignableTo(c.InvokeValues[i].Type()) {
@@ -288,18 +296,18 @@ func postRequest(request *http.Request, c *controller) []string {
 }
 
 // Control 初始化装配结构体依赖 control 参数必须是指针
-func (a *Aurora) control(control Controller) {
+func (engine *Engine) control(control Controller) {
 	value, err := checkControl(control)
 	ErrorMsg(err)
-	if a.controllers == nil {
-		a.controllers = make([]*reflect.Value, 0)
+	if engine.controllers == nil {
+		engine.controllers = make([]*reflect.Value, 0)
 	}
-	a.controllers = append(a.controllers, value)
+	engine.controllers = append(engine.controllers, value)
 	// 把处理器注册进 ioc , 默认为类型名称
 	tf := reflect.TypeOf(control)
-	err = a.component.putIn(tf.String(), control)
+	err = engine.component.putIn(tf.String(), control)
 	ErrorMsg(err)
-	a.Info(tf.String() + " initialization joins ioc container management")
+	engine.Info(tf.String() + " initialization joins ioc container management")
 }
 
 // checkControl 校验处理器的规范形式

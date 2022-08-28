@@ -6,12 +6,12 @@ import (
 )
 
 /*
-	group 路由分组
-	初始化的 分组变量不会携带全局的Use
-	group 可以设定局部的全局Use
+group 路由分组
+初始化的 分组变量不会携带全局的Use
+group 可以设定局部的全局Use
 */
 type Group struct {
-	a          *Aurora
+	a          *Engine
 	middleware []Middleware
 	prefix     string
 }
@@ -44,11 +44,6 @@ func (g *Group) Delete(url string, control Controller, middleware ...Middleware)
 func (g *Group) Head(url string, control Controller, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodHead, g.prefix+url, control, middleware...)
-}
-
-func (g *Group) Url(url string, control Controller, middleware ...Middleware) {
-	middleware = mergeMiddleware(g.middleware, middleware)
-	g.a.Url(g.prefix+url, control, middleware...)
 }
 
 // Group 路由分组  必须以 “/” 开头分组

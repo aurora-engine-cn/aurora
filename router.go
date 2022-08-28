@@ -51,13 +51,14 @@ import (
 		5. 相同 RESTFul 父路径 下面可以有子路径，规则相同
 
 发生公共根
-			1)节点和被添加路径产生公共根，提取公共根后，若公共根未注册，服务处理函数将为nil
-			2)若节点恰好是公共根，则设置函数
-		6.REST 风格注册
-			1)同一个根路径下只能有一个 REST 子路径
-			2)REST 作为根路径也只能拥有一个REST 子路径
-			3)REST 路径会和其它非REST同级路径发生冲突
-		7.注册路径不能以/结尾（bug未修复，/user /user/ 产生 /user 的公共根 使用切割解析路径方式，解析子路径，拼接剩余子路径会存在bug ,注册路径的时候强制无法注册 / 结尾的 url）
+
+		1)节点和被添加路径产生公共根，提取公共根后，若公共根未注册，服务处理函数将为nil
+		2)若节点恰好是公共根，则设置函数
+	6.REST 风格注册
+		1)同一个根路径下只能有一个 REST 子路径
+		2)REST 作为根路径也只能拥有一个REST 子路径
+		3)REST 路径会和其它非REST同级路径发生冲突
+	7.注册路径不能以/结尾（bug未修复，/user /user/ 产生 /user 的公共根 使用切割解析路径方式，解析子路径，拼接剩余子路径会存在bug ,注册路径的时候强制无法注册 / 结尾的 url）
 */
 const (
 	request  = "AuroraRequest"  //go 原生请求
@@ -67,7 +68,7 @@ const (
 
 // route Aurora核心路由器
 type route struct {
-	*Aurora     // Aurora 引用
+	*Engine     // Aurora 引用
 	mx          *sync.Mutex
 	catch       map[reflect.Type]catch // 全局错误捕捉处理
 	middleware  []Middleware           // 全局中间件
@@ -105,7 +106,7 @@ func (r *route) Catch(err Error) {
 	r.registerErrorCatch(err)
 }
 
-//——————————————————————————————————————————————————————————————————————————路由注册————————————————————————————————————————————————————————————————————————————————————————————
+// ——————————————————————————————————————————————————————————————————————————路由注册————————————————————————————————————————————————————————————————————————————————————————————
 // addRoute 预处理被添加路径
 func (r *route) addRoute(method, path string, control Controller, middleware ...Middleware) {
 	//非空校验,
@@ -146,9 +147,10 @@ func (r *route) addRoute(method, path string, control Controller, middleware ...
 // method: 请求类型(日志相关参数)
 // path: 插入的路径(日志相关参数)
 func (r *route) add(method string, root *node, Path string, path string, fun Controller, middleware ...Middleware) {
+	var l string
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &controller{Fun: vf, FunType: vt, Aurora: r.Aurora}
+	control := &controller{Fun: vf, FunType: vt, Engine: r.Engine}
 	control.InitArgs()
 	//初始化根,此处的初始化根在Aurora 实例化阶段代替，该段if后期可以暂时忽略，没有初始化的根路由 的第一个节点默认为 ""以此判断初始化
 	if root.Path == "" && root.Child == nil {
@@ -159,7 +161,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.Control = control
 		root.middleware = middleware
 
-		l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		r.Debug(l)
 		return
 	}
@@ -173,7 +175,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.middleware = middleware
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
-		l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		r.Debug(l)
 		return
 	}
@@ -228,7 +230,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 					Child:      nil,
 				}
 				root.Child = append(root.Child, n)
-				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				r.Debug(l)
 				return
 			}
@@ -282,7 +284,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 				root.Control = control       //更改当前处理函数
 				root.middleware = middleware //更改当前中间件
 				//此处的操作，大多是处理以竟被注册好的接口进行分裂，注释此处的目的是对日志的控制，被分裂的路径会被二次打印
-				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
+				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				r.Debug(l)
 				return
 			}
@@ -303,7 +305,7 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 	//处理反射
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &controller{Fun: vf, FunType: vt, Aurora: r.Aurora}
+	control := &controller{Fun: vf, FunType: vt, Engine: r.Engine}
 	control.InitArgs()
 	pub := r.findPublicRoot(method, root.Path, Path, path) //公共路径
 	if pub != "" {
@@ -431,12 +433,6 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 		ctx[iocs] = r.component
 		ctx[auroraMaxMultipartMemory] = r.MaxMultipartMemory
 	}
-	if r.isStatic(path, rw, req) {
-		return nil, nil, nil, nil
-	}
-	if index := strings.Index(path, "."); index != -1 {
-		path = r.fileService
-	}
 	// 全局中间件
 	middlewares := r.middleware
 	if middlewares != nil {
@@ -448,6 +444,12 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 				return nil, nil, nil, nil
 			}
 		}
+	}
+	if r.isStatic(path, rw, req) {
+		return nil, nil, nil, nil
+	}
+	if index := strings.Index(path, "."); index != -1 {
+		path = r.fileService
 	}
 	//查找指定的Method树
 	if _, ok := r.tree[method]; !ok {
@@ -462,6 +464,7 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 	return c, u, args, ctx
 }
 
+// 路由树查询
 func (r *route) bfs(root *node, path string) (*node, []string, map[string]interface{}) {
 	var next *element
 	reqCount := strings.Count(path, "/")
@@ -471,19 +474,17 @@ star:
 	next = q.next()
 	for next != nil {
 		n := next.value
-		if n.Control != nil {
-			if reqCount == n.Count {
-				if !strings.Contains(n.FullPath, "{") {
-					if path == n.FullPath {
-						return n, nil, nil
-					}
-				} else {
-					urlArgs, Aargs := analysisRESTFul(n, path)
-					if urlArgs == nil {
-						goto next
-					}
-					return n, urlArgs, Aargs
+		if n.Control != nil && reqCount == n.Count {
+			if !strings.Contains(n.FullPath, "{") {
+				if path == n.FullPath {
+					return n, nil, nil
 				}
+			} else {
+				urlArgs, Aargs := analysisRESTFul(n, path)
+				if urlArgs == nil {
+					goto next
+				}
+				return n, urlArgs, Aargs
 			}
 		}
 	next:
@@ -499,16 +500,18 @@ star:
 }
 
 // ServeHTTP 一切的开始
-func (a *Aurora) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	c, u, args, ctx := a.router.urlRouter(req.Method, req.URL.Path, rw, req, nil)
+func (engine *Engine) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	c, u, args, ctx := engine.router.urlRouter(req.Method, req.URL.Path, rw, req, nil)
 	if c == nil {
 		return
 	}
-	a.handle(c, u, args, rw, req, ctx)
+	engine.handle(c, u, args, rw, req, ctx)
 
 }
-func (a *Aurora) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx Ctx) {
-	p := a.proxyPool.Get().(*Proxy)
+
+// 请求处理
+func (engine *Engine) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx Ctx) {
+	p := engine.proxyPool.Get().(*Proxy)
 	p.Rew = rw
 	p.Req = req
 	p.Ctx = ctx
@@ -516,12 +519,13 @@ func (a *Aurora) handle(c *node, u []string, args map[string]interface{}, rw htt
 	p.middleware = c.middleware
 	p.UrlVariable = u
 	p.args = args
-	p.view = a
-	p.Aurora = a
+	p.view = engine
+	p.Engine = engine
 	p.start()
-	a.proxyPool.Put(p)
+	engine.proxyPool.Put(p)
 }
 
+// 获取注册接口函数名称
 func getFunName(fun interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
 }
@@ -545,6 +549,7 @@ func urlHead(url string) string {
 	return url[index:]
 }
 
+// 处理请求接口 后缀
 func urlEnd(url string) string {
 	if url == "/" {
 		return url
@@ -563,6 +568,7 @@ func urlEnd(url string) string {
 	return url[:index-1]
 }
 
+// 检查 请求接口 格式规范
 func urlCheck(url string) string {
 	re := regexp.MustCompile(`/{2,}`)
 	all := re.FindAll([]byte(url), -1)
