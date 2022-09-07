@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const dbUrl = "root:Aurora@2022@tcp(82.157.160.117:3306)/community"
+const dbUrl = "x:xxxx@tcp(x.x.x.x:3306)/x"
 
 var open *sql.DB
 
