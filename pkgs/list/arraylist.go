@@ -4,7 +4,7 @@ package list
 	切片工具类
 */
 
-type ArrayList[T comparable] []T
+type ArrayList[T any] []T
 
 // Add 添加数据
 func (al *ArrayList[T]) Add(e ...T) {
