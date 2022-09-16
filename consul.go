@@ -107,7 +107,6 @@ func (engine *Engine) consul() {
 		if err != nil {
 			engine.Error(err.Error())
 		}
-
 	}
 
 	// consul 配置完毕 把 consul 的配置中心加入到 ioc 中
@@ -207,7 +206,7 @@ func (engine *Engine) getAgentServiceCheck() *api.AgentServiceCheck {
 	port := engine.config.GetString("aurora.server.port")
 
 	// 生成检查ID
-	checkId := fmt.Sprintf("Service:%s-%s:%s", strings.ToUpper(name), host, port)
+	checkId := fmt.Sprintf("Service:%s-%s:%s", name, host, port)
 
 	// 创建 服务检查
 	c := &api.AgentServiceCheck{
@@ -268,8 +267,4 @@ func (engine *Engine) preCheck() (bool, error) {
 // Health consul 健康检查回掉
 func Health() string {
 	return "ok"
-}
-
-func (c *Consul) GetService() {
-
 }

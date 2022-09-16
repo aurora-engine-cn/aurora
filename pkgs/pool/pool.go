@@ -2,24 +2,24 @@ package pool
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 )
 
 // Pool 协程池
 type Pool[T Goroutine] struct {
+	tasks    []T           //任务缓存
 	task     []chan T      //任务队列
 	size     int           //任务处理数量 默认为0
 	number   int           //协程数量
 	cut      int           //切换
 	catch    RunTimeErr    //协程错误处理器
 	status   []bool        // 协程状态管理 检查当前协程是否是启动状态，用于处理协程内发生 panic 之后重新启动 Star 避免多开 协程
-	rw       sync.Mutex    // 协程重启锁
+	mux      sync.Mutex    // 协程重启锁
 	listener chan struct{} //监听器
 	clear    context.CancelFunc
 	rootCtx  context.Context // 协程上下文
-	close    bool            // 协程池结束标识
+	close    bool            // 协程池结束标识,close为false表示协程池处于运行中，反之挟持结束
 }
 
 // NewPool 初始化线程池
@@ -36,7 +36,7 @@ func NewPool[T Goroutine](number, size int, ctx context.Context) *Pool[T] {
 		p.task[i] = make(chan T, p.size)
 	}
 	p.catch = poolPanic{}
-	p.rw = sync.Mutex{}
+	p.mux = sync.Mutex{}
 	p.listener = make(chan struct{})
 
 	//初始化根上下文
@@ -59,7 +59,6 @@ func (pool *Pool[T]) Start() {
 
 				//关闭重启监听
 			case <-pool.rootCtx.Done():
-				fmt.Println("关闭监听器")
 				return
 			}
 		}
@@ -69,38 +68,46 @@ func (pool *Pool[T]) Start() {
 func (pool *Pool[T]) star() {
 	// 启动 number 个协程
 	for i := 0; i < pool.number; i++ {
-		pool.rw.Lock()
+		pool.mux.Lock()
 		if !pool.status[i] && !pool.close {
 			pool.status[i] = true
 			ctx, _ := context.WithCancel(pool.rootCtx)
-			go func(task chan T, id int, c context.Context) {
-				defer pool.catch.Catch()
+			go func(c context.Context, task chan T, id int, mx *sync.Mutex) {
 				// 协程抛出错误之后 该协程会结束运行，为了保障 后来的任务能够正确的处理 需要重启当前的协程
-				defer func(num int) {
-					// 标识当前协程 结束了
+				defer func(num int, rw *sync.Mutex) {
+					// 标识当前协程 结束了,添加任务时候 校验
+					rw.Lock()
 					pool.status[num] = false
+					rw.Unlock()
 					// 重新运行
 					pool.listener <- struct{}{}
-				}(id)
+				}(id, mx)
+				defer pool.catch.Catch()
 				for {
 					select {
+
+					// 读取 任务
 					case t := <-task:
 						t.Run(c)
-						// 结束协程池
+
+					// 结束协程池
 					case <-c.Done():
+						mx.Lock()
 						pool.close = true
-						fmt.Println("goroutine id -- :", id, "close..")
+						mx.Unlock()
 						return
 					}
 				}
-			}(pool.task[i], i, ctx)
+			}(ctx, pool.task[i], i, &pool.mux)
 		}
-		pool.rw.Unlock()
+		pool.mux.Unlock()
 	}
 }
 
 // Add 添加任务
-func (pool *Pool[T]) Add(task T) {
+func (pool *Pool[T]) add(task T) {
+	pool.mux.Lock()
+	defer pool.mux.Unlock()
 	// 更新轮询安排任务
 	pool.next()
 	// 查找一个正在运行的 协程池传递任务
