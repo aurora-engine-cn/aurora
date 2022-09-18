@@ -1,4 +1,4 @@
-package TimeUtils
+package timeutils
 
 import (
 	"gitee.com/aurora-engine/aurora/utils"
