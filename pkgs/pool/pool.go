@@ -44,9 +44,16 @@ func NewPool[T Goroutine](number, size int, ctx context.Context) *Pool[T] {
 	p.iterMux = sync.Mutex{}
 	p.listener = make(chan struct{})
 	p.close = true
+
+	var c context.Context
+	var cancelFunc context.CancelFunc
 	//初始化根上下文
-	cancel, cancelFunc := context.WithCancel(ctx)
-	p.rootCtx = cancel
+	if ctx != nil {
+		c, cancelFunc = context.WithCancel(ctx)
+	} else {
+		c, cancelFunc = context.WithCancel(context.Background())
+	}
+	p.rootCtx = c
 	p.clear = cancelFunc
 	return p
 }
