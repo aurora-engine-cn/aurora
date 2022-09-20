@@ -29,9 +29,9 @@ func Injection(field, value reflect.Value) error {
 			// 当前指针为空 设置指针指向value的地址
 			if value.Elem().CanAddr() && field.CanSet() {
 				//权限上面的校验
-				//if field.CanSet() {
-				//	field.Set(value.Elem().Addr())
-				//}
+				if field.CanSet() {
+					field.Set(value.Elem().Addr())
+				}
 				field.Set(value.Elem().Addr())
 			}
 			return nil
@@ -64,8 +64,8 @@ func Injection(field, value reflect.Value) error {
 // data 传入 value 对应的 map[string]interface{}
 func StarAssignment(value reflect.Value, data interface{}) error {
 	switch value.Kind() {
-	case reflect.Slice, reflect.Map, reflect.Struct:
-		return Assignment(value, data)
+	//case reflect.Slice, reflect.Map, reflect.Struct:
+	//	return Assignment(value, data)
 	case reflect.Ptr:
 		//需要先分配一个对应类型反射的值，这个值调用 Elem 获取对应指向的值才不会为空
 		d := reflect.New(value.Type().Elem())
@@ -92,9 +92,10 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 	var FieldName map[string]string
 	//获取反射的类型
 	t := arguments.Type()
+
+	//如果参数是结构体，初始化一份 字段名的对应表,该对应表，适配一些命名规范 蛇形,下划线什么的
 	if t.Kind() == reflect.Struct {
 		FieldName = make(map[string]string)
-		//如果参数是结构体，初始化一份 字段名的对应表,该对应表，适配一些命名规范 蛇形,下划线什么的
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			snake := strcase.ToSnake(f.Name)
@@ -152,28 +153,36 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 			if field.Type() == nil || v == nil { //v == nil 防止下面的 switch 走到 default中的 case reflect.Ptr 造成栈溢出
 				return nil
 			}
-			switch v.(type) {
-			case map[string]interface{}:
-				//处理结构体类型字段
-				if field.Kind() == reflect.Ptr {
-					//指针类型，必须先分配内存,field 的类型为某个结构体的指针，先要获取到该结构体指针类型，指针指向的具体类型，然后为其分配New，New得到的才是 想要的指针类型
-					v2 := reflect.New(field.Type().Elem())
-					//获取指针的值，初始化复制先要拿到指针指向的值才可操作
-					elem := v2.Elem()
-					//初始化赋值
-					if err := Assignment(elem, v); err != nil {
-						return err
+			// 处理 对应的 v 之前 对type的具体类型进行额外处理
+			if datafunc, ok := dataType[field.Type().String()]; ok {
+				err := datafunc(field, v)
+				if err != nil {
+					return err
+				}
+			} else {
+				switch v.(type) {
+				case map[string]interface{}:
+					//处理结构体类型字段
+					if field.Kind() == reflect.Ptr {
+						//指针类型，必须先分配内存,field 的类型为某个结构体的指针，先要获取到该结构体指针类型，指针指向的具体类型，然后为其分配New，New得到的才是 想要的指针类型
+						v2 := reflect.New(field.Type().Elem())
+						//获取指针的值，初始化复制先要拿到指针指向的值才可操作
+						elem := v2.Elem()
+						//初始化赋值
+						if err := Assignment(elem, v); err != nil {
+							return err
+						}
+						field.Set(v2)
+					} else {
+						if err := Assignment(field, v); err != nil {
+							return err
+						}
 					}
-					field.Set(v2)
-				} else {
+				default:
+					//处理普通字段属性
 					if err := Assignment(field, v); err != nil {
 						return err
 					}
-				}
-			default:
-				//处理普通字段属性
-				if err := Assignment(field, v); err != nil {
-					return err
 				}
 			}
 		}

@@ -45,8 +45,8 @@ func (receiver *LinkList[T]) Get(index int) T {
 	return v
 }
 
-// Delete 顺序删除数据 T
-func (receiver *LinkList[T]) Delete() {
+// Remove 顺序删除数据 T
+func (receiver *LinkList[T]) Remove() {
 	receiver.mx.Lock()
 	defer receiver.mx.Unlock()
 	if receiver.end != nil {

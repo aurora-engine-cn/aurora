@@ -31,7 +31,7 @@ func NewPool[T Goroutine](number, size int, ctx context.Context) *Pool[T] {
 	p := new(Pool[T])
 	p.number = number
 	p.size = size
-	if size == 0 {
+	if p.size == 0 {
 		p.size = 1
 	}
 	p.task = make([]chan T, number)

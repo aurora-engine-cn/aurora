@@ -7,8 +7,8 @@ package list
 type ArrayList[T any] []T
 
 // Add 添加数据
-func (al *ArrayList[T]) Add(e ...T) {
-	*al = append(*al, e...)
+func (al *ArrayList[T]) Add(e T) {
+	*al = append(*al, e)
 }
 
 // Get 获取元素
@@ -16,8 +16,8 @@ func (al *ArrayList[T]) Get(i int) T {
 	return (*al)[i]
 }
 
-// Delete 删除指定索引的数据
-func (al *ArrayList[T]) Delete(index int) {
+// Remove 删除指定索引的数据
+func (al *ArrayList[T]) Remove(index int) {
 	if al == nil || index < 0 {
 		return
 	}

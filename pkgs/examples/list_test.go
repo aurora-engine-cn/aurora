@@ -1,13 +1,16 @@
 package examples
 
 import (
+	"fmt"
 	"gitee.com/aurora-engine/aurora/pkgs/list"
 	"testing"
 )
 
-func TestLinkList_Add(t *testing.T) {
+func TestList(t *testing.T) {
 	l := list.ArrayList[int]{1, 2, 3}
-	t.Log(l)
-	l.Delete(0)
+	for _, v := range l {
+		fmt.Println(v)
+	}
+	l.Remove(0)
 	t.Log(l)
 }
