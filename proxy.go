@@ -2,6 +2,7 @@ package aurora
 
 import (
 	"bytes"
+	"gitee.com/aurora-engine/aurora/utils/stringutils"
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
 	"reflect"
@@ -72,7 +73,9 @@ func (sp *Proxy) resultHandler() {
 		return
 	}
 	header := sp.Rew.Header()
-	if header.Get(contentType) == "" {
+	// 处理响应结果之前 判空 Content-Type，以支持用户自定义返回格式,默认会添加json格式
+	get := header.Get(contentType)
+	if stringutils.IsEmpty(get) {
 		header.Set(contentType, sp.Engine.resourceMapType[".json"])
 	}
 	for i := 0; i < len(sp.values); i++ {

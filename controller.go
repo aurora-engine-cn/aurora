@@ -133,7 +133,7 @@ func (c *controller) invoke() []reflect.Value {
 	// 结构体参数约束校验
 	err := c.checkConstrain()
 	if err != nil {
-		return []reflect.Value{reflect.ValueOf(err)}
+		panic(err)
 	}
 	r := c.Fun.Call(c.InvokeValues)
 	//after
