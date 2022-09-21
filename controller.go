@@ -3,6 +3,7 @@ package aurora
 import (
 	"errors"
 	"fmt"
+	"gitee.com/aurora-engine/aurora/base"
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
@@ -11,7 +12,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 )
 
 /*
@@ -39,15 +39,15 @@ type controller struct {
 	//路径参数,按顺序依次
 	UrlVariable []string
 	RESTFul     map[string]interface{}
-	//入参参数个数
+	//处理器入参参数个数
 	InNum int
-	//返回值个数
+	//处理器返回值个数
 	OutNum int
-	//按顺序存储每个入参的反射实例
+	// InvokeValues存储的是控制器传递参数的序列 按顺序存储每个入参的反射实例
 	InvokeValues []reflect.Value
-	//参数赋值序列表
+	//参数赋值序列表，主要存储请求参数的只值
 	Args []string
-	//可赋值参数索引序列
+	//AssignmentIndex 可赋值参数索引序列，可赋值参数序列是存储了系统内部参数之外的请求参数所在 InvokeValues 参数序列中的索引位置。
 	AssignmentIndex []int
 	//返回参数实例
 	ReturnValues []reflect.Value
@@ -57,6 +57,8 @@ type controller struct {
 }
 
 // InitArgs 初始化参数信息，注册函数阶段调用
+// 完成对 InvokeValues 控制器参数的初始化(未赋值状态)
+// 完成对应的 AssignmentIndex 可赋值参数序列初始化
 func (c *controller) InitArgs() {
 	c.InNum = c.FunType.NumIn()
 	c.OutNum = c.FunType.NumOut()
@@ -78,7 +80,6 @@ func (c *controller) InitArgs() {
 		}
 		//对非内部参数进行 字段校验 存在为导出字段需要更改
 		if arguments.Kind() == reflect.Struct || arguments.Kind() == reflect.Ptr {
-			// 升级高版本 后放开代码
 			if !checkArguments(value) {
 				//检查存在 未导出字段
 				log.Fatalln("The index: ", i, "'", arguments.String(), "' parameter is checked to exist as an export field, please check the field permission")
@@ -105,13 +106,11 @@ func checkArguments(s reflect.Value) bool {
 	} else {
 		v = s
 	}
-
-	// 针对一些类型 跳过检查 比如时间 time.Time ,有些内置类型需要跳过检查，伴随可能出现的bug 在接口初始化赋值时候需要匹配 待修改
-	switch v.Interface().(type) {
-	case time.Time:
+	st := v.Type()
+	// 基础类型之外的类型校验，如果配置了对应的基础类型解析逻辑则直接跳过校验
+	if _, ok := base.Type[st.String()]; ok {
 		return true
 	}
-	st := v.Type()
 	for i := 0; i < st.NumField(); i++ {
 		//兼容1.16 取消校验
 		field := st.Field(i)
@@ -165,7 +164,7 @@ func (c *controller) analysisInput(request *http.Request, response http.Response
 		//传递参数的数量大于 处理函数可赋值数量，则默认丢弃多余部分的参数，以可赋值参数长度为主
 		l = len(c.AssignmentIndex)
 	} else {
-		//此情况 传入的参数小于可赋值参数数量，把传入的参数按照可赋值索引依次赋值
+		//此情况 传入的参数小于可赋值参数数量,传入的参数按照可赋值索引依次赋值
 		l = len(values)
 	}
 	//初始化参数列表，如果 values 为零个元素 则 不会给Args入参 进行初始化

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"gitee.com/aurora-engine/aurora/base"
 	"github.com/iancoleman/strcase"
 	"reflect"
 	"strconv"
@@ -154,7 +155,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				return nil
 			}
 			// 处理 对应的 v 之前 对type的具体类型进行额外处理
-			if baseFunc, ok := BaseType[field.Type().String()]; ok {
+			if baseFunc, ok := base.Type[field.Type().String()]; ok {
 				err := baseFunc(field, v)
 				if err != nil {
 					return err
