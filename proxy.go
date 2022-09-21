@@ -28,7 +28,7 @@ type Proxy struct {
 }
 
 // start 路由查询入口
-func (sp *Proxy) start() []reflect.Value {
+func (sp *Proxy) start() {
 	//defer 处理在执行接口期间的一切 panic处理
 	defer errRecover(sp)
 	//存储error类型 用于catch捕捉
@@ -62,7 +62,7 @@ end:
 		}
 	}
 	sp.resultHandler()
-	return nil
+	return
 }
 
 // resultHandler 接口返回值相应处理
