@@ -85,71 +85,11 @@ func (sp *Proxy) resultHandler() {
 		case reflect.String:
 			value := sp.values[i].Interface().(string)
 			stringData(sp, value)
-			//if strings.HasSuffix(value, ".html") {
-			//	HtmlPath := sp.pathPool.Get().(*bytes.Buffer)
-			//	if value[:1] == "/" {
-			//		value = value[1:]
-			//	}
-			//	//拼接项目路径
-			//	HtmlPath.WriteString(sp.projectRoot)
-			//	//拼接 静态资源路径 默认情况下为 '/'
-			//	HtmlPath.WriteString(sp.resource)
-			//	//拼接 资源真实路径
-			//	HtmlPath.WriteString(value)
-			//	//得到完整 html 页面资源path
-			//	html := HtmlPath.String()
-			//	HtmlPath.Reset() //清空buffer，以便下次利用
-			//	sp.pathPool.Put(HtmlPath)
-			//	sp.Rew.Header().Set(contentType, sp.resourceMapType[".html"])
-			//	sp.view.view(html, sp.Rew, nil) //视图解析 响应 html 页面
-			//	return
-			//}
-			////处理转发，重定向本质重新走一边路由，找到对应处理的方法
-			//if strings.HasPrefix(value, "forward:") {
-			//	value = value[8:]
-			//	//请求转发 会携带当前的 请求体 和上下文参数
-			//	c, u, args, ctx := sp.router.urlRouter(sp.Req.Method, value, sp.Rew, sp.Req, sp.Ctx)
-			//	sp.handle(c, u, args, sp.Rew, sp.Req, ctx)
-			//	return
-			//}
-			//sp.Rew.Write([]byte(value))
-
 		//对于接口的返回，目前只做了对错误的支持，web 开发中对抽象类型的设计应该不会太多，大部分直接返回实体数据了
 		case reflect.Ptr, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
 			otherData(sp, sp.values[i])
-			//of := sp.values[i].Type()
-			//if of.Implements(sp.errType) {
-			//	//错误捕捉
-			//	sp.catchError(of, sp.values[i])
-			//	return
-			//}
-			//marshal, err := json.Marshal(v)
-			//ErrorMsg(err)
-			//sp.Rew.Write(marshal)
 		case reflect.Interface:
 			anyData(sp, sp.values[i])
-			//判断接口是否实现了 error 返回接口的类型，绝大部分应该是错误接口
-			//通过 Elem 方法可以反者获取到，接口的具体类型的值反射
-			//value := sp.values[i].Elem()
-			//of := value.Type()
-			//if !of.Implements(sp.errType) {
-			//	//没有实现,反射校验接口是否实现的小坑，实现接口的形式要和统一，比如 反射类型是指针，实现接口绑定的方式要是指针
-			//	//此处可能返回 interface{} 的数据 没有实现error的当作数据 返回
-			//	var marshal []byte
-			//	switch v.(type) {
-			//	case string:
-			//		//对字符串不仅处理
-			//		marshal = []byte(v.(string))
-			//	default:
-			//		s, err := json.Marshal(v)
-			//		ErrorMsg(err)
-			//		marshal = s
-			//	}
-			//	sp.Rew.Write(marshal)
-			//	return
-			//}
-			////错误捕捉
-			//sp.catchError(of, value)
 		}
 	}
 }
