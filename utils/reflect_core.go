@@ -154,7 +154,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				return nil
 			}
 			// 处理 对应的 v 之前 对type的具体类型进行额外处理
-			if datafunc, ok := dataType[field.Type().String()]; ok {
+			if datafunc, ok := BaseType[field.Type().String()]; ok {
 				err := datafunc(field, v)
 				if err != nil {
 					return err

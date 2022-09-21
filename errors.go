@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+// WebRecover 用于处理服务器中出现的 panic 消息自定义
+type WebRecover func(proxy *Proxy)
+
 // Aurora 全局错误 panic 处理
 func errRecover(proxy *Proxy) {
 	rew := proxy.Rew
