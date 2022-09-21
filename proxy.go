@@ -2,7 +2,7 @@ package aurora
 
 import (
 	"bytes"
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"net/http"
 	"reflect"
 	"strings"
@@ -150,7 +150,7 @@ func otherData(sp *Proxy, value reflect.Value) {
 		sp.catchError(of, value)
 		return
 	}
-	marshal, err := json.Marshal(value.Interface())
+	marshal, err := jsoniter.Marshal(value.Interface())
 	ErrorMsg(err)
 	sp.Rew.Write(marshal)
 }
@@ -168,7 +168,7 @@ func anyData(sp *Proxy, value reflect.Value) {
 			//对字符串不仅处理
 			marshal = []byte(v.(string))
 		default:
-			s, err := json.Marshal(v)
+			s, err := jsoniter.Marshal(v)
 			ErrorMsg(err)
 			marshal = s
 		}
