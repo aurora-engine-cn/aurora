@@ -112,7 +112,6 @@ func checkArguments(s reflect.Value) bool {
 		return true
 	}
 	for i := 0; i < st.NumField(); i++ {
-		//兼容1.16 取消校验
 		field := st.Field(i)
 		//校验当前结构体的字段是否是导出状态
 		if !field.IsExported() {

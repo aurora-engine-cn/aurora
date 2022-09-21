@@ -11,6 +11,7 @@ const (
 )
 
 // DateTime 获取当前时间
+// format 指定时间格式，默认的时间格式为 2006-01-02 03:04:05
 func DateTime(format ...string) string {
 	f := datetime
 	if format != nil {
@@ -20,6 +21,7 @@ func DateTime(format ...string) string {
 }
 
 // Date 获取当前日期
+// format 指定时间格式，默认时间格式为 2006-01-02
 func Date(format ...string) string {
 	f := date
 	if format != nil {
@@ -56,6 +58,7 @@ func AfterDate(day int) string {
 	return add.Format(date)
 }
 
+// Time 解析时间字符串
 func Time(v string) time.Time {
 	parse, err := time.Parse(datetime, v)
 	utils.UtilError(err)

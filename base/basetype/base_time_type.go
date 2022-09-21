@@ -1,4 +1,4 @@
-package base
+package basetype
 
 import (
 	"errors"
@@ -20,8 +20,8 @@ func TimeType(value reflect.Value, data any) error {
 	return nil
 }
 
-// TimeTypePointer 完成对时间指针 *time.Time 的赋值操作
-func TimeTypePointer(value reflect.Value, data any) error {
+// TimePointerType 完成对时间指针 *time.Time 的赋值操作
+func TimePointerType(value reflect.Value, data any) error {
 	if s, ok := data.(string); !ok {
 		return errors.New("*Time.Time property initialization failed, please check whether the corresponding value format is correct")
 	} else {

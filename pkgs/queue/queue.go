@@ -2,7 +2,7 @@ package queue
 
 import "sync"
 
-type Queue[T comparable] struct {
+type Queue[T any] struct {
 	head *node[T]
 	end  *node[T]
 	mx   sync.Mutex

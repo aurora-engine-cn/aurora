@@ -1,6 +1,7 @@
 package base
 
 import (
+	"gitee.com/aurora-engine/aurora/base/basetype"
 	"reflect"
 	"time"
 )
@@ -20,8 +21,12 @@ type DataType func(value reflect.Value, data any) error
 // value : 定义了对应该类型的解析逻辑
 var Type = map[string]DataType{
 	// 加载时间类型基础变量
-	reflect.TypeOf(time.Time{}).String(): TimeType,
+	TypeKey(time.Time{}): basetype.TimeType,
 
 	// 加载时间指针类型基础变量
-	reflect.TypeOf(&time.Time{}).String(): TimeTypePointer,
+	TypeKey(&time.Time{}): basetype.TimePointerType,
+}
+
+func TypeKey(t any) string {
+	return reflect.TypeOf(t).String()
 }
