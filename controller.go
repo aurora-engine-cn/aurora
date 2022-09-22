@@ -3,7 +3,6 @@ package aurora
 import (
 	"errors"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/base"
 	"gitee.com/aurora-engine/aurora/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
@@ -81,40 +80,6 @@ func (c *controller) InitArgs() {
 		//初始化可赋值参数序列，存储可赋值的索引
 		c.AssignmentIndex = append(c.AssignmentIndex, i)
 	}
-}
-
-// checkArguments 校验接口入参 参数所有字段是否为导出字段
-// 找要有一个是非导出字段则返回 false
-func checkArguments(s reflect.Value) bool {
-	var v reflect.Value
-	if s.Kind() != reflect.Struct && s.Kind() != reflect.Ptr {
-		return true
-	}
-	//如果入参是指针
-	if s.Kind() == reflect.Ptr {
-		//校验入参 此刻的指针数据是未初始化情况 需要分配一个值来进行校验,分配的值仅用于校验
-		elem := reflect.New(s.Type().Elem()).Elem()
-		return checkArguments(elem)
-	} else {
-		v = s
-	}
-	st := v.Type()
-	// 基础类型之外的类型校验，如果配置了对应的基础类型解析逻辑则直接跳过校验
-	if _, ok := base.Type[st.String()]; ok {
-		return true
-	}
-	for i := 0; i < st.NumField(); i++ {
-		field := st.Field(i)
-		//校验当前结构体的字段是否是导出状态
-		if !field.IsExported() {
-			return false
-		}
-		//对该字段进行递归检查
-		if !checkArguments(v.Field(i)) {
-			return false
-		}
-	}
-	return true
 }
 
 // invoke 接口调用
