@@ -199,8 +199,8 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				//校验结构体失败此处要么返回错误要么 panic，或者 return 放弃这个字段的初始化，处理器将会接收到零值
 				return nil
 			}
-			if field.Type() == nil || v == nil { //v == nil 防止下面的 switch 走到 default中的 case reflect.Ptr 造成栈溢出
-				return nil
+			if field.Type() == nil || v == nil || !field.CanSet() { //v == nil 防止下面的 switch 走到 default中的 case reflect.Ptr 造成栈溢出
+				continue
 			}
 			// 处理 对应的 v 之前 对type的具体类型进行额外处理
 			baseType := ""
