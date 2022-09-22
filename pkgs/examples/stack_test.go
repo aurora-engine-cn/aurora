@@ -1,7 +1,7 @@
 package examples
 
 import (
-	"gitee.com/aurora-engine/hutool/stack"
+	"gitee.com/aurora-engine/aurora/pkgs/stack"
 	"testing"
 )
 
