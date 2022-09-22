@@ -1,4 +1,4 @@
-package basetype
+package utils
 
 import (
 	"errors"
