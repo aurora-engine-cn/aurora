@@ -4,7 +4,6 @@ import (
 	"errors"
 	"gitee.com/aurora-engine/aurora/base"
 	"github.com/iancoleman/strcase"
-	"log"
 	"reflect"
 	"strconv"
 )
@@ -88,7 +87,7 @@ func StarAssignment(value reflect.Value, data interface{}) error {
 // Assignment 带注入的参数,入参必须是值类型，指针类型赋值需要传递指针所指向的value，带注入的参数为map类型时候 arguments发射的map对应的接收类型必须是 map[string]interface{}
 // value对应注入的 k/v
 func Assignment(arguments reflect.Value, value interface{}) error {
-	if value == nil || arguments.Type() == nil {
+	if value == nil || arguments.Type() == nil || !arguments.CanSet() {
 		return nil
 	}
 	var FieldName map[string]string
@@ -157,8 +156,6 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 			}
 			// 处理 对应的 v 之前 对type的具体类型进行额外处理
 			if baseFunc, ok := base.Type[field.Type().String()]; ok {
-				log.Println(field.Type().String())
-				log.Println(field.Type().Name())
 				err := baseFunc(field, v)
 				if err != nil {
 					return err
