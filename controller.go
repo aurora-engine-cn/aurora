@@ -260,9 +260,11 @@ func (engine *Engine) control(control Controller) {
 	engine.controllers = append(engine.controllers, value)
 	// 把处理器注册进 ioc , 默认为类型名称
 	tf := reflect.TypeOf(control)
-	err = engine.component.putIn(tf.String(), control)
+	// 生成全局唯一标识符号
+	iocKey := fmt.Sprintf("%s-%s", tf.Elem().PkgPath(), tf.String())
+	err = engine.component.putIn(iocKey, control)
 	ErrorMsg(err)
-	engine.Info(tf.String() + " initialization joins ioc container management")
+	engine.Info("[" + iocKey + "] initialization joins ioc container management")
 }
 
 // checkControl 校验处理器的规范形式

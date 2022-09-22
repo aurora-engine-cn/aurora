@@ -2,6 +2,7 @@ package base
 
 import (
 	"gitee.com/aurora-engine/aurora/base/basetype"
+	"gitee.com/aurora-engine/aurora/base/pkgstype"
 	"reflect"
 	"time"
 )
@@ -31,6 +32,8 @@ var Type = map[string]DataType{
 
 	// 加载时间指针类型基础变量
 	TypeKey(&time.Time{}): basetype.TimePointerType,
+
+	"queue.Queue": pkgstype.AuroraQueueType,
 }
 
 // TypeKey 通过反射得到一个类型的类型字符串

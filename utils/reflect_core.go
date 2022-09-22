@@ -6,6 +6,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Injection 反射初始化
@@ -155,7 +156,11 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				return nil
 			}
 			// 处理 对应的 v 之前 对type的具体类型进行额外处理
-			if baseFunc, ok := base.Type[field.Type().String()]; ok {
+			baseType := field.Type().String()
+			if index := strings.Index(baseType, "["); index != -1 {
+				baseType = baseType[:index+1]
+			}
+			if baseFunc, ok := base.Type[baseType]; ok {
 				err := baseFunc(field, v)
 				if err != nil {
 					return err

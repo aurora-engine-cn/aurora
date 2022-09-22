@@ -2,6 +2,7 @@ package aurora
 
 import (
 	"errors"
+	"fmt"
 	"gitee.com/aurora-engine/aurora/utils"
 	"reflect"
 	"sync"
@@ -106,6 +107,7 @@ func (i *ioc) run() error {
 }
 
 // dependence
+// ref : 当前属性的唯一 icoKey
 func (i *ioc) dependence(ref string, value reflect.Value) error {
 	// values 主要用来操作结构体字段
 	var values reflect.Value
@@ -185,12 +187,18 @@ func (i *ioc) dependence(ref string, value reflect.Value) error {
 		} else {
 			//尝试 通过类型匹配寻找 ( 结构体同类型匹配查找 )，此处可能存在bug 如果容器的该字段属性是存在初始化好的，此处会覆盖掉原来的赋值
 			var va *reflect.Value
-			r = field.Type.String()
+			iocKey := ""
+			if field.Type.Kind() == reflect.Ptr {
+				iocKey = fmt.Sprintf("%s-%s", field.Type.Elem().PkgPath(), field.Type.String())
+			} else {
+				iocKey = fmt.Sprintf("%s-%s", field.Type.PkgPath(), field.Type.String())
+			}
+			//r = field.Type.String()
 			//开始查询 tag 的 引用id 是否在主容器中
-			load, ok := i.id.Load(r)
+			load, ok := i.id.Load(iocKey)
 			if !ok {
 				// 主容器中没有找到 tag 引用，尝试在 一缓存容器中查找
-				v, o := i.first[r]
+				v, o := i.first[iocKey]
 				if !o {
 					// 一级缓存容器 也无法查询到
 					//此刻需要 把当前正在初始化的 实例放到 第一级缓存容器中 表示 当前的实例已经存在，然后去 初始化未找到的引用
