@@ -38,9 +38,9 @@ const favicon = "/favicon.ico"
 // ContentType 定义一个静态资源头类型
 type ContentType map[string]string
 
-// views 是整个服务器对视图渲染的核心接口,开发者实现改接口对需要展示的页面进行自定义处理
-type views interface {
-	view(string, http.ResponseWriter, interface{})
+// ViewHandle 是整个服务器对视图渲染的核心接口,开发者实现改接口对需要展示的页面进行自定义处理
+type ViewHandle interface {
+	View(string, http.ResponseWriter, any)
 }
 
 // ResourceFun w 响应体，path 资源真实路径，rt资源类型

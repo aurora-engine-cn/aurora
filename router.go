@@ -73,7 +73,7 @@ type route struct {
 	catch       map[reflect.Type]catch // 全局错误捕捉处理
 	middleware  []Middleware           // 全局中间件
 	tree        map[string]*node       // 路由树根节点
-	defaultView views                  // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	defaultView ViewHandle             // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
 }
 
 // node 路由节点
