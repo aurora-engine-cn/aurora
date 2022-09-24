@@ -25,7 +25,7 @@ type Proxy struct {
 	values      []reflect.Value
 	UrlVariable []string
 	args        map[string]interface{} //REST API 参数解析
-	view        views                  //支持自定义视图渲染机制
+	view        ViewHandle             //支持自定义视图渲染机制
 }
 
 // start 路由查询入口
@@ -132,7 +132,7 @@ func stringData(sp *Proxy, value string) {
 		HtmlPath.Reset() //清空buffer，以便下次利用
 		sp.pathPool.Put(HtmlPath)
 		sp.Rew.Header().Set(contentType, sp.resourceMapType[".html"])
-		sp.view.view(html, sp.Rew, nil) //视图解析 响应 html 页面
+		sp.view.View(html, sp.Rew, nil) //视图解析 响应 html 页面
 		return
 	}
 	//处理转发，重定向本质重新走一边路由，找到对应处理的方法
