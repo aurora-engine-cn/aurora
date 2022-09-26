@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"gitee.com/aurora-engine/aurora/container"
 	"gitee.com/aurora-engine/aurora/utils"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -34,7 +35,7 @@ type Engine struct {
 	// 可指定的配置文件
 	configpath string
 	// 路由服务管理
-	router *route
+	router *Router
 	// 项目根路径
 	projectRoot string
 
@@ -43,9 +44,6 @@ type Engine struct {
 
 	// 静态文件服务器接口
 	fileService string
-
-	// 常用的静态资源头
-	resourceMapType ContentType
 
 	// 自定义系统参数
 	intrinsic map[string]Constructor
@@ -75,7 +73,7 @@ type Engine struct {
 
 	// 第三方组件管理容器
 	component *ioc
-
+	space     *container.Space
 	// 加载结构体作为处理器, 处理器并不会被注册到缓存容器中，处理器在启动期间会根据需要去缓存容器中寻找对应的依赖
 	controllers []*reflect.Value
 
@@ -92,15 +90,47 @@ type Engine struct {
 }
 
 func New(option ...Option) *Engine {
+	engine := NewEngine()
 	//初始化日志
 	logs := logrus.New()
 	logs.SetFormatter(&Formatter{})
 	logs.Out = os.Stdout
+	//初始化基本属性
+	engine.Log = logs
+	engine.printBanner()
+	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
+	engine.control(engine)
+
+	// 加载配置文件
+	engine.viperConfig()
+	engine.router = NewRoute(engine)
+	// 加载 consul 配置
+	engine.consul()
+
+	// 执行配置项
+	for _, opt := range option {
+		opt(engine)
+	}
+
+	var middleware Middleware
+	var constructors Constructors
+	// 中间件配置项
+	engine.use[reflect.TypeOf(middleware)] = useMiddleware
+	// 匿名组件
+	engine.use[reflect.TypeOf(constructors)] = useConstructors
+	// 命名组件
+	engine.use[reflect.TypeOf(Component{})] = useComponent
+	// log 日志
+	engine.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
+	// server
+	engine.use[reflect.TypeOf(&http.Server{})] = useServe
+	return engine
+}
+
+// NewEngine 创建 Engine 基础配置
+func NewEngine() *Engine {
 	engine := &Engine{
 		port: "8080", //默认端口号
-		router: &route{
-			mx: &sync.Mutex{},
-		},
 		proxyPool: &sync.Pool{
 			New: func() interface{} {
 				return &Proxy{}
@@ -115,60 +145,18 @@ func New(option ...Option) *Engine {
 		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
 		use:      make(map[interface{}]UseConfiguration),
 	}
-	//初始化基本属性
-
-	engine.router.Engine = engine
-	engine.Log = logs
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot //初始化项目路径信息
 	engine.component = newIoc(engine.Log)
-	engine.printBanner()
-	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-	engine.control(engine)
-
-	// 加载配置文件
-	engine.viperConfig()
-
-	// 加载 consul 配置
-	engine.consul()
-
-	// 执行配置项
-	for _, opt := range option {
-		opt(engine)
-	}
-
-	var middleware Middleware
-	var constructors Constructors
-	// 中间件配置项
-	engine.use[reflect.TypeOf(middleware)] = useMiddleware
-
-	// 静态资源头配置项，主要设置可能不存在的资源头，或者过时的子资源
-	engine.use[reflect.TypeOf(ContentType{})] = useContentType
-
-	// 匿名组件
-	engine.use[reflect.TypeOf(constructors)] = useConstructors
-	// 命名组件
-	engine.use[reflect.TypeOf(Component{})] = useComponent
-
-	// log 日志
-	engine.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
-
-	// server
-	engine.use[reflect.TypeOf(&http.Server{})] = useServe
-
-	engine.Info("Initialize the built-in system request parameters")
+	engine.space = container.NewSpace()
 	// 初始化系统参数
 	if engine.intrinsic == nil {
 		engine.intrinsic = make(map[string]Constructor)
 	}
-	engine.intrinsic[reflect.TypeOf(&http.Request{}).String()] = req
-	engine.intrinsic[reflect.TypeOf(new(http.ResponseWriter)).Elem().String()] = rew
-	engine.intrinsic[reflect.TypeOf(Ctx{}).String()] = ctx
-	engine.intrinsic[reflect.TypeOf(&MultipartFile{}).String()] = file
-
-	//加载静态资源头
-	engine.loadResourceHead()
-
+	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.Request)))] = req
+	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
+	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(Ctx)))] = ctx
+	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(MultipartFile)))] = file
 	return engine
 }
 
@@ -202,7 +190,7 @@ func (engine *Engine) Use(Configuration ...interface{}) {
 // Run 启动服务器
 func (engine *Engine) run() error {
 	// 启动路由
-	engine.startRouter()
+	engine.StartRouter()
 
 	var p, certFile, keyFile string
 	if engine.config != nil {

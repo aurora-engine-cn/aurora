@@ -27,7 +27,6 @@ func (engine *Engine) ioc() {
 		for _, constructor := range engine.build {
 			// 执行构造 生成组件放入到 ioc中
 			c := constructor()
-
 			engine.control(c)
 		}
 	}
@@ -42,17 +41,27 @@ func (engine *Engine) ioc() {
 			}
 		}
 	}
+
+	if engine.components != nil {
+		for _, component := range engine.components {
+			for k, v := range component {
+				if err := engine.space.Put(k, v); err != nil {
+					ErrorMsg(err)
+				}
+			}
+		}
+	}
 	// 清空
 	engine.components = nil
 	//启动容器 ,给容器中的组件进行依赖初始化,容器加载出错 结束运行
-	err := engine.component.start()
+	err := engine.space.Start()
 	if err != nil {
 		ErrorMsg(err)
 	}
 
 }
 
-func (engine *Engine) startRouter() {
+func (engine *Engine) StartRouter() {
 	// 完成容器启动 ，这一步主要是针对于 属于controller处理器一部分进行操作，比如自动加载一些配置文件中的值
 	// 该步骤仅对匿名的控制器组件产生效果，命名组件不处理
 	engine.dependencyInjection()
@@ -62,8 +71,8 @@ func (engine *Engine) startRouter() {
 	engine.resource = "/"
 
 	engine.server.BaseContext = engine.baseContext //配置 上下文对象属性
-	engine.router.defaultView = engine             //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
-	engine.server.Handler = engine                 //设置默认路由器
+	engine.router.defaultView = View               //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
+	engine.server.Handler = engine.router          //设置默认路由器
 	if engine.config != nil {                      //是否加载配置文件 覆盖配置项
 		engine.Info("the configuration file is loaded successfully.")
 		//加载配置文件中定义的 端口号
@@ -92,13 +101,15 @@ func (engine *Engine) startRouter() {
 			engine.Info("the service name is " + engine.name)
 		}
 	}
+
 	//注册路由
-	if engine.api != nil {
-		for method, infos := range engine.api {
-			for _, info := range infos {
-				engine.router.addRoute(method, info.path, info.control, info.middleware...)
-			}
-		}
-		engine.api = nil
-	}
+	//if engine.api != nil {
+	//	for method, infos := range engine.api {
+	//		for _, info := range infos {
+	//			engine.router.Register(method, info.path, info.control, info.middleware...)
+	//		}
+	//	}
+	//	engine.api = nil
+	//}
+	engine.router.LoadCache()
 }

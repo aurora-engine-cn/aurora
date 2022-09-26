@@ -45,25 +45,22 @@ func ErrorMsg(err error, msg ...string) {
 	}
 }
 
-// Error 错误类型  类型设计 是一个函数 接收一个 实现了 error 接口的参数
-type Error = interface{}
-
-// 错误捕捉器的存储上要进行封装
-type catch struct {
+// Catch 错误捕捉器的存储上要进行封装
+type Catch struct {
 	in  []reflect.Value
 	fun reflect.Value
 }
 
-func (c *catch) invoke(err reflect.Value) []reflect.Value {
+func (c *Catch) invoke(err reflect.Value) []reflect.Value {
 	c.in[0] = err
 	return c.fun.Call(c.in)
 }
 
-func (engine *Engine) Catch(err Error) {
+func (engine *Engine) Catch(err any) {
 	engine.router.Catch(err)
 }
 
-func (r *route) registerErrorCatch(err Error) {
+func (router *Router) registerErrorCatch(err any) {
 	if err == nil {
 		return
 	}
@@ -79,15 +76,15 @@ func (r *route) registerErrorCatch(err Error) {
 		log.Panic(of.Name() + " not is errors!")
 		return
 	}
-	c := catch{
+	c := Catch{
 		in: []reflect.Value{
 			reflect.New(in).Elem(),
 		},
 		fun: reflect.ValueOf(err),
 	}
-	if r.catch == nil {
-		r.catch = map[reflect.Type]catch{in: c}
+	if router.catch == nil {
+		router.catch = map[reflect.Type]Catch{in: c}
 		return
 	}
-	r.catch[in] = c
+	router.catch[in] = c
 }

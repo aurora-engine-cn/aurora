@@ -19,7 +19,7 @@ func (engine *Engine) ViewHandle(v ViewHandle) {
 // View 默认视图解析
 // html: 需要被处理的静态资源绝对路径信息
 // data: 是一个可传递的数据
-func (engine *Engine) View(html string, rew http.ResponseWriter, data interface{}) {
+func (engine *Engine) View(html string, rew http.ResponseWriter, data Ctx) {
 	parseFiles, err := template.ParseFiles(html)
 	ErrorMsg(err)
 	err = parseFiles.Execute(rew, data)

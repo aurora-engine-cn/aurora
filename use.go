@@ -60,19 +60,6 @@ func useServe(server interface{}) UseOption {
 	}
 }
 
-// useContentType 使用静态资源头
-func useContentType(contentType interface{}) UseOption {
-	return func(a *Engine) {
-		if contentTypes, b := contentType.(ContentType); !b {
-			return
-		} else {
-			for k, v := range contentTypes {
-				a.resourceMapType[k] = v
-			}
-		}
-	}
-}
-
 // useComponent 添加到容器
 func useComponent(component interface{}) UseOption {
 	return func(engine *Engine) {

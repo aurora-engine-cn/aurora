@@ -18,6 +18,8 @@ import (
 // 2. 对泛型的参数支持只能支持到 别名的方式声明的泛型定义 比如 type ArrayList[T any] []T  type Map[K comparable, V any] map[K]V  此类的泛型 还是保留者基础数据类型的特性.
 // 3. 当前 base 包仅处理不是泛型的自定义类型解析
 
+// 加载 基础类型解析支持
+// 泛型的基础类型解析需要手动导入 key 格式为:  包全名-类型字符串
 func init() {
 	BaseType = map[string]DataType{
 		// 加载时间类型基础变量
@@ -43,7 +45,7 @@ type DataType func(value reflect.Value, data any) error
 // value : 定义了对应该类型的解析逻辑
 var BaseType map[string]DataType
 
-// TypeKey 通过反射得到一个类型的类型字符串
+// TypeKey 通过反射得到一个类型的类型字符串, 适用于普通类型
 func TypeKey(t any) string {
 	typeOf := reflect.TypeOf(t)
 	baseType := ""

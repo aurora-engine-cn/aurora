@@ -5,45 +5,44 @@ import (
 	"strings"
 )
 
-type Controller = interface{}
-
 // Get 请求
-func (engine *Engine) Get(url string, control Controller, middleware ...Middleware) {
+func (engine *Engine) Get(url string, control any, middleware ...Middleware) {
 	engine.register(http.MethodGet, url, control, middleware...)
 }
 
 // Post 请求
-func (engine *Engine) Post(url string, control Controller, middleware ...Middleware) {
+func (engine *Engine) Post(url string, control any, middleware ...Middleware) {
 	engine.register(http.MethodPost, url, control, middleware...)
 }
 
 // Put 请求
-func (engine *Engine) Put(url string, control Controller, middleware ...Middleware) {
+func (engine *Engine) Put(url string, control any, middleware ...Middleware) {
 	engine.register(http.MethodPut, url, control, middleware...)
 }
 
 // Delete 请求
-func (engine *Engine) Delete(url string, control Controller, middleware ...Middleware) {
+func (engine *Engine) Delete(url string, control any, middleware ...Middleware) {
 	engine.register(http.MethodDelete, url, control, middleware...)
 }
 
 // Head 请求
-func (engine *Engine) Head(url string, control Controller, middleware ...Middleware) {
+func (engine *Engine) Head(url string, control any, middleware ...Middleware) {
 	engine.register(http.MethodHead, url, control, middleware...)
 }
 
 // register 通用注册器
-func (engine *Engine) register(method string, url string, control Controller, middleware ...Middleware) {
-	if engine.api == nil {
-		engine.api = make(map[string][]controlInfo)
-	}
-	api := controlInfo{path: url, control: control, middleware: middleware}
-	if _, b := engine.api[method]; !b {
-		engine.api[method] = make([]controlInfo, 0)
-		engine.api[method] = append(engine.api[method], api)
-	} else {
-		engine.api[method] = append(engine.api[method], api)
-	}
+func (engine *Engine) register(method string, url string, control any, middleware ...Middleware) {
+	//if engine.api == nil {
+	//	engine.api = make(map[string][]controlInfo)
+	//}
+	//api := controlInfo{path: url, control: control, middleware: middleware}
+	//if _, b := engine.api[method]; !b {
+	//	engine.api[method] = make([]controlInfo, 0)
+	//	engine.api[method] = append(engine.api[method], api)
+	//} else {
+	//	engine.api[method] = append(engine.api[method], api)
+	//}
+	engine.router.Cache(method, url, control, middleware...)
 }
 
 // Group 路由分组  必须以 “/” 开头分组

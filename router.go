@@ -1,8 +1,11 @@
 package aurora
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"gitee.com/aurora-engine/aurora/utils"
+	"html/template"
 	"net/http"
 	"os"
 	"reflect"
@@ -66,14 +69,25 @@ const (
 	iocs     = "AuroraIoc"      //依赖容器
 )
 
-// route Aurora核心路由器
-type route struct {
-	*Engine     // Aurora 引用
-	mx          *sync.Mutex
-	catch       map[reflect.Type]catch // 全局错误捕捉处理
-	middleware  []Middleware           // 全局中间件
-	tree        map[string]*node       // 路由树根节点
-	defaultView ViewHandle             // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+// Router Aurora 核心路由器
+type Router struct {
+	Log
+
+	maxMultipartMemory int64
+	root               string                   //项目更目录
+	resource           string                   // 静态资源管理 默认为 root 目录
+	fileService        string                   // 文件服务配置
+	proxyPool          *sync.Pool               // 创建执行实例
+	pathPool           *sync.Pool               // 分配路径构建
+	mx                 *sync.Mutex              // 注册路由并发锁
+	catch              map[reflect.Type]Catch   // 全局错误捕捉处理
+	api                map[string][]controlInfo // 接口信息
+	middleware         []Middleware             // 全局中间件
+	tree               map[string]*node         // 路由树根节点
+	controllers        []*reflect.Value         // 存储结构体全局控制器
+	defaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	intrinsic          map[string]Constructor   // 自定义系统参 初始化来自 Engine
+	config             Config                   // 配置实例，读取配置文件
 }
 
 // node 路由节点
@@ -82,33 +96,123 @@ type node struct {
 	FullPath   string       //当前处理器全路径
 	Count      int          //路径数量
 	middleware []Middleware //中间处理函数
-	Control    *controller  //服务处理函数
+	Control    *Controller  //服务处理函数
 	Child      []*node      //子节点
 }
 
-func (r *route) use(middleware ...Middleware) {
+// NewRoute 通过 Engine 初始化 路由模块
+func NewRoute(engine *Engine) *Router {
+	router := new(Router)
+	// 路由日志
+	router.Log = engine.Log
+	// 项目路径
+	router.root = engine.projectRoot
+	// 文件上传大小
+	router.maxMultipartMemory = engine.MaxMultipartMemory
+	// 自定义赋值参数
+	router.intrinsic = engine.intrinsic
+	router.mx = &sync.Mutex{}
+	router.proxyPool = &sync.Pool{New: func() any {
+		return &Proxy{}
+	}}
+	router.pathPool = &sync.Pool{New: func() any {
+		return &bytes.Buffer{}
+	}}
+	return router
+}
+
+func (router *Router) Use(Configuration ...any) {
+
+}
+
+func (router *Router) use(middleware ...Middleware) {
 	if middleware == nil {
 		return
 	}
-	if r.middleware == nil {
-		r.middleware = make([]Middleware, len(middleware))
+	if router.middleware == nil {
+		router.middleware = make([]Middleware, len(middleware))
 		for i := range middleware {
-			r.middleware[i] = middleware[i]
+			router.middleware[i] = middleware[i]
 		}
 		return
 	}
 	for i := range middleware {
-		r.middleware = append(r.middleware, middleware[i])
+		router.middleware = append(router.middleware, middleware[i])
 	}
 }
 
-func (r *route) Catch(err Error) {
-	r.registerErrorCatch(err)
+func (router *Router) Catch(err any) {
+	router.registerErrorCatch(err)
+}
+
+// Cache 通用注册器,封装接口信息到缓存中
+func (router *Router) Cache(method string, url string, control any, middleware ...Middleware) {
+	if router.api == nil {
+		router.api = make(map[string][]controlInfo)
+	}
+	api := controlInfo{path: url, control: control, middleware: middleware}
+	if _, b := router.api[method]; !b {
+		router.api[method] = make([]controlInfo, 0)
+		router.api[method] = append(router.api[method], api)
+	} else {
+		router.api[method] = append(router.api[method], api)
+	}
+}
+
+// LoadCache 加载缓存中的接口进行注册到路由
+func (router *Router) LoadCache() {
+	if router.api != nil {
+		for method, infos := range router.api {
+			for _, info := range infos {
+				router.Register(method, info.path, info.control, info.middleware...)
+			}
+		}
+		router.api = nil
+	}
+}
+
+// ControlInjection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
+// 此处专门对控制器
+func (router *Router) ControlInjection() {
+	if router.controllers == nil {
+		return
+	}
+	router.Info("Initialize load controller dependencies")
+	l := len(router.controllers)
+	for i := 0; i < l; i++ {
+		control := *router.controllers[i]
+		if control.Kind() == reflect.Ptr {
+			control = control.Elem()
+		}
+		for j := 0; j < control.NumField(); j++ {
+			field := control.Type().Field(j)
+			//查询 value 属性 读取config中的基本属性
+			if v, b := field.Tag.Lookup("value"); b {
+				if v == "" {
+					router.Warn("value tag value is ''")
+					continue
+				}
+				get := router.config.Get(v)
+				if get == nil {
+					//如果查找结果大小等于0 则表示不存在
+					continue
+				}
+				//把查询到的 value 初始化给指定字段
+				err := utils.StarAssignment(control.Field(j), get)
+				ErrorMsg(err)
+			}
+		}
+	}
 }
 
 // ——————————————————————————————————————————————————————————————————————————路由注册————————————————————————————————————————————————————————————————————————————————————————————
-// addRoute 预处理被添加路径
-func (r *route) addRoute(method, path string, control Controller, middleware ...Middleware) {
+
+// Register 预处理被添加路径
+// method: 请求类型
+// path :注册路径
+// control : 处理器(需要传递函数)
+// middleware : 路径中间件
+func (router *Router) Register(method, path string, control any, middleware ...Middleware) {
 	//非空校验,
 	if path == "" || control == nil {
 		// 空字符串路径不能注册
@@ -122,35 +226,35 @@ func (r *route) addRoute(method, path string, control Controller, middleware ...
 	//校验处理函数的正确性，只能注册函数，不能注册结构体，接口，基本类型等数据
 	vt := reflect.TypeOf(control)
 	if vt.Kind() != reflect.Func {
-		r.Error(method + ":the registered handler is not a function，need a function")
+		router.Error(method + ":the registered handler is not a function，need a function")
 		return
 	}
 
-	r.mx.Lock()
-	defer r.mx.Unlock()
+	router.mx.Lock()
+	defer router.mx.Unlock()
 	//初始化路由树
-	if r.tree == nil {
-		r.tree = make(map[string]*node)
+	if router.tree == nil {
+		router.tree = make(map[string]*node)
 	}
-	if _, ok := r.tree[method]; !ok {
+	if _, ok := router.tree[method]; !ok {
 		//初始化 请求类型根
 		//初始化根路径,此处是更改 路径注册中的一些bug 而添加，由于 /路径注册的顺序导致了一些意想不到的bug, 特殊情况下 /aa  /a / 等顺序会导致其它两个出现错误
-		r.tree[method] = &node{Path: "/"}
+		router.tree[method] = &node{Path: "/"}
 	}
 	//拿到根路径
-	root := r.tree[method]
-	r.add(method, root, path, path, control, middleware...) //把路径添加到根路径中中
+	root := router.tree[method]
+	router.add(method, root, path, path, control, middleware...) //把路径添加到根路径中中
 }
 
 // add 添加路径节点
 // method 指定请求类型，root 根路径，Path和fun 被添加的路径和处理函数，path携带路径副本添加过程中不会有任何操作仅用于日志处理
 // method: 请求类型(日志相关参数)
 // path: 插入的路径(日志相关参数)
-func (r *route) add(method string, root *node, Path string, path string, fun Controller, middleware ...Middleware) {
+func (router *Router) add(method string, root *node, Path string, path string, fun any, middleware ...Middleware) {
 	var l string
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &controller{Fun: vf, FunType: vt, Engine: r.Engine}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.intrinsic}
 	control.InitArgs()
 	//初始化根,此处的初始化根在Aurora 实例化阶段代替，该段if后期可以暂时忽略，没有初始化的根路由 的第一个节点默认为 ""以此判断初始化
 	if root.Path == "" && root.Child == nil {
@@ -162,13 +266,13 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.middleware = middleware
 
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-		r.Debug(l)
+		router.Debug(l)
 		return
 	}
 	if root.Path == Path { //相同路径可能是分裂或者提取的公共根
 		//此处修改，注册同样的路径，选择覆盖前一个
 		if root.Control != nil {
-			r.Error(method, ": ", path, " already registered")
+			router.Error(method, ": ", path, " already registered")
 			os.Exit(-1)
 		}
 		root.Control = control
@@ -176,7 +280,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-		r.Debug(l)
+		router.Debug(l)
 		return
 	}
 	//如果当前的节点是 REST API 节点 ，子节点可以添加REST API节点
@@ -201,7 +305,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 					*/
 					if strings.HasPrefix(root.Child[i].Path, c) || strings.HasPrefix(c, root.Child[i].Path) {
 						//此处的递归 是将子节点插入当前节点的子路径做检查，所以传递的路径和处理函数是当前正准备添加的函数
-						r.add(method, root.Child[i], c, path, fun, middleware...)
+						router.add(method, root.Child[i], c, path, fun, middleware...)
 						return // / 根路径在后面插入路由 无法走到最下面的 合并api 此处 注释return 解决
 					}
 				}
@@ -216,7 +320,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 						// strings.HasPrefix(root.Child[i].Path, "{") 判断当前子路径节点是否是 RESTFul
 						// strings.HasSuffix(Path, "{") 判断 待加入的子路径是不是 RESTFul
 						if !(strings.HasPrefix(root.Child[i].Path, "{") && strings.HasSuffix(Path, "{")) {
-							r.Error(method + ":" + path + " RESTFul conflict")
+							router.Error(method + ":" + path + " RESTFul conflict")
 							os.Exit(-1)
 						}
 					}
@@ -231,7 +335,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 				}
 				root.Child = append(root.Child, n)
 				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-				r.Debug(l)
+				router.Debug(l)
 				return
 			}
 		}
@@ -248,7 +352,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 					*/
 					if strings.HasPrefix(root.Child[i].Path, c) || strings.HasPrefix(c, root.Child[i].Path) {
 						//r.add(method, root.Child[i], c, path, fun)
-						r.add(method, root.Child[i], c, path, root.Control.Fun.Interface(), root.middleware...) //改  此处的for主要处理  当前路径需要把分裂出来的子路径存储到当前的孩子节点中，传递的被存储的处理器应该是当前的处理器,如出现bug，恢复上面的注释代码
+						router.add(method, root.Child[i], c, path, root.Control.Fun.Interface(), root.middleware...) //改  此处的for主要处理  当前路径需要把分裂出来的子路径存储到当前的孩子节点中，传递的被存储的处理器应该是当前的处理器,如出现bug，恢复上面的注释代码
 						return
 					}
 				}
@@ -261,7 +365,7 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 					//如果存储的路径是REST API 需要检索当前子节点是否存有路径，存有路径则为冲突
 					for i := 0; i < len(root.Child); i++ {
 						if !(strings.HasPrefix(root.Child[i].Path, "{") && strings.HasSuffix(Path, "{")) {
-							r.Error(method + ":" + path + " RESTFul conflict")
+							router.Error(method + ":" + path + " RESTFul conflict")
 							os.Exit(-1)
 						}
 					}
@@ -285,13 +389,13 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 				root.middleware = middleware //更改当前中间件
 				//此处的操作，大多是处理以竟被注册好的接口进行分裂，注释此处的目的是对日志的控制，被分裂的路径会被二次打印
 				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-				r.Debug(l)
+				router.Debug(l)
 				return
 			}
 		}
 	}
 	//情况3.节点和被添加节点无直接关系 抽取公共前缀最为公共根
-	r.merge(method, root, Path, path, fun, middleware...)
+	router.merge(method, root, Path, path, fun, middleware...)
 	return
 }
 
@@ -301,13 +405,13 @@ func (r *route) add(method string, root *node, Path string, path string, fun Con
 // root: 根合并相关参数
 // Path: 根合并相关参数
 // fun: 根合并相关参数
-func (r *route) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...Middleware) bool {
+func (router *Router) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...Middleware) bool {
 	//处理反射
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &controller{Fun: vf, FunType: vt, Engine: r.Engine}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.intrinsic}
 	control.InitArgs()
-	pub := r.findPublicRoot(method, root.Path, Path, path) //公共路径
+	pub := router.findPublicRoot(method, root.Path, Path, path) //公共路径
 	if pub != "" {
 		pl := len(pub)
 		/*
@@ -345,7 +449,7 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 			if len(root.Child) > 0 {
 				for i := 0; i < len(root.Child); i++ {
 					//单纯的被添加到此节点的子节点列表中 需要递归检测子节点和被添加节点是否有公共根
-					if flag = r.merge(method, root.Child[i], ch2, path, fun, middleware...); flag {
+					if flag = router.merge(method, root.Child[i], ch2, path, fun, middleware...); flag {
 						return true
 					}
 				}
@@ -353,11 +457,11 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 				// 检索插入路径REST API冲突。
 				for i := 0; i < len(root.Child); i++ {
 					if strings.HasPrefix(root.Child[i].Path, "{") || strings.HasPrefix(ch2, "{") {
-						r.Error(method + ":" + path + " RESTFul conflict")
+						router.Error(method + ":" + path + " RESTFul conflict")
 						os.Exit(-1)
 					}
 					if strings.HasPrefix(root.Child[i].Path, "{") && strings.HasPrefix(ch2, "{") {
-						r.Error(method + ":" + path + " RESTFul conflict")
+						router.Error(method + ":" + path + " RESTFul conflict")
 						os.Exit(-1)
 					}
 				}
@@ -372,7 +476,7 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 			}
 			root.Child = append(root.Child, n) //作为新的子节点添加到当前的子节点列表中
 			l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-			r.Debug(l)
+			router.Debug(l)
 		} else {
 			//ch2为空说明 ch2是被添加路径截取的 添加的路径可能是被提出来作为公共根
 			if pub == Path {
@@ -381,7 +485,7 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 				root.middleware = middleware
 				root.Count = strings.Count(path, "/")
 				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
-				r.Debug(l)
+				router.Debug(l)
 			}
 		}
 		root.Path = pub //覆盖原有值设置公共根
@@ -391,7 +495,7 @@ func (r *route) merge(method string, root *node, Path string, path string, fun i
 }
 
 // FindPublicRoot 查找公共前缀，如无公共前缀则返回 ""
-func (r *route) findPublicRoot(method, p1, p2, path string) string {
+func (router *Router) findPublicRoot(method, p1, p2, path string) string {
 	l := len(p1)
 	if l > len(p2) {
 		l = len(p2) //取长度短的
@@ -412,7 +516,7 @@ func (r *route) findPublicRoot(method, p1, p2, path string) string {
 			rb := strings.Count(temp, "}")
 			if lb != rb {
 				//完整性校验失败 该路径注册会失败,出现完整性 校验失败的 直接 结束程序，后续逻辑无法继续
-				r.Error(method, " : ", path, " RESTFul Integrity check failed with conflict")
+				router.Error(method, " : ", path, " RESTFul Integrity check failed with conflict")
 				os.Exit(-1)
 				return ""
 			}
@@ -425,16 +529,16 @@ func (r *route) findPublicRoot(method, p1, p2, path string) string {
 // urlRouter 检索指定的path路由
 // method 请求类型，path 查询路径，rw，req http生成的请求响应,
 // ctx 中间件请求上下文参数
-func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx Ctx) (*node, []string, map[string]interface{}, Ctx) {
+func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx Ctx) (*node, []string, map[string]interface{}, Ctx) {
 	if ctx == nil {
 		ctx = make(Ctx)
 		ctx[request] = req
 		ctx[response] = rw
-		ctx[iocs] = r.component
-		ctx[auroraMaxMultipartMemory] = r.MaxMultipartMemory
+		//ctx[iocs] = router.component
+		//ctx[auroraMaxMultipartMemory] = router.MaxMultipartMemory
 	}
 	// 全局中间件
-	middlewares := r.middleware
+	middlewares := router.middleware
 	if middlewares != nil {
 		for _, middleware := range middlewares {
 			if middleware == nil {
@@ -445,18 +549,18 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 			}
 		}
 	}
-	if r.isStatic(path, rw, req) {
+	if router.isStatic(path, rw, req) {
 		return nil, nil, nil, nil
 	}
 	if index := strings.Index(path, "."); index != -1 {
-		path = r.fileService
+		path = router.fileService
 	}
 	//查找指定的Method树
-	if _, ok := r.tree[method]; !ok {
+	if _, ok := router.tree[method]; !ok {
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
 	}
-	c, u, args := r.bfs(r.tree[method], path)
+	c, u, args := router.bfs(router.tree[method], path)
 	if c == nil {
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
@@ -465,7 +569,7 @@ func (r *route) urlRouter(method, path string, rw http.ResponseWriter, req *http
 }
 
 // 路由树查询
-func (r *route) bfs(root *node, path string) (*node, []string, map[string]interface{}) {
+func (router *Router) bfs(root *node, path string) (*node, []string, map[string]interface{}) {
 	var next *element
 	reqCount := strings.Count(path, "/")
 	q := queue{}
@@ -506,7 +610,15 @@ func (engine *Engine) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	engine.handle(c, u, args, rw, req, ctx)
+}
 
+// ServeHTTP 一切的开始
+func (router *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	c, u, args, ctx := router.urlRouter(req.Method, req.URL.Path, rw, req, nil)
+	if c == nil {
+		return
+	}
+	router.handle(c, u, args, rw, req, ctx)
 }
 
 // 请求处理
@@ -514,15 +626,31 @@ func (engine *Engine) handle(c *node, u []string, args map[string]interface{}, r
 	p := engine.proxyPool.Get().(*Proxy)
 	p.Rew = rw
 	p.Req = req
-	p.Ctx = ctx
-	p.control = *c.Control
-	p.middleware = c.middleware
+	p.Context = ctx
+	p.Control = *c.Control
+	p.Middleware = c.middleware
 	p.UrlVariable = u
-	p.args = args
-	p.view = engine
-	p.Engine = engine
+	p.Args = args
+	p.view = View
 	p.start()
 	engine.proxyPool.Put(p)
+}
+
+// 请求处理
+func (router *Router) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx Ctx) {
+	proxy := router.proxyPool.Get().(*Proxy)
+	proxy.Router = router
+	proxy.Rew = rw
+	proxy.Req = req
+	proxy.Context = ctx
+	proxy.Control = *c.Control
+	proxy.Middleware = c.middleware
+	proxy.UrlVariable = u
+	proxy.Args = args
+	proxy.view = View
+	proxy.Recover = errRecover
+	proxy.start()
+	router.proxyPool.Put(proxy)
 }
 
 // 获取注册接口函数名称
@@ -635,16 +763,23 @@ func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{})
 }
 
 // isStatic 处理静态资源 返回true 表示处理了静态资源
-func (r *route) isStatic(path string, rw http.ResponseWriter, req *http.Request) bool {
+func (router *Router) isStatic(path string, rw http.ResponseWriter, req *http.Request) bool {
 	mapping := path
 	if index := strings.LastIndex(req.URL.Path, "."); index != -1 { //此处判断这个请求可能为静态资源处理
 		// 文件服务器校验
-		if strings.HasPrefix(path, r.fileService) {
+		if strings.HasPrefix(path, router.fileService) {
 			return false
 		}
 		t := req.URL.Path[index:] //截取可能的资源类型
-		r.resourceHandler(rw, req, mapping, t)
+		router.resourceHandler(rw, req, mapping, t)
 		return true
 	}
 	return false
+}
+
+func View(html string, rew http.ResponseWriter, data Ctx) {
+	parseFiles, err := template.ParseFiles(html)
+	ErrorMsg(err)
+	err = parseFiles.Execute(rew, data)
+	ErrorMsg(err)
 }

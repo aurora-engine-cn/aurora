@@ -17,31 +17,31 @@ type Group struct {
 }
 
 // Get 请求
-func (g *Group) Get(url string, control Controller, middleware ...Middleware) {
+func (g *Group) Get(url string, control any, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodGet, g.prefix+url, control, middleware...)
 }
 
 // Post 请求
-func (g *Group) Post(url string, control Controller, middleware ...Middleware) {
+func (g *Group) Post(url string, control any, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodPost, g.prefix+url, control, middleware...)
 }
 
 // Put 请求
-func (g *Group) Put(url string, control Controller, middleware ...Middleware) {
+func (g *Group) Put(url string, control any, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodPut, g.prefix+url, control, middleware...)
 }
 
 // Delete 请求
-func (g *Group) Delete(url string, control Controller, middleware ...Middleware) {
+func (g *Group) Delete(url string, control any, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodDelete, g.prefix+url, control, middleware...)
 }
 
 // Head 请求
-func (g *Group) Head(url string, control Controller, middleware ...Middleware) {
+func (g *Group) Head(url string, control any, middleware ...Middleware) {
 	middleware = mergeMiddleware(g.middleware, middleware)
 	g.a.register(http.MethodHead, g.prefix+url, control, middleware...)
 }

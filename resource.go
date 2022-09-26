@@ -38,26 +38,36 @@ const favicon = "/favicon.ico"
 // ContentType 定义一个静态资源头类型
 type ContentType map[string]string
 
-// ViewHandle 是整个服务器对视图渲染的核心接口,开发者实现改接口对需要展示的页面进行自定义处理
-type ViewHandle interface {
-	View(string, http.ResponseWriter, any)
+var ResourceMapType ContentType
+
+func init() {
+	v := viper.New()
+	//设置viper读取json格式的配置
+	v.SetConfigType("json")
+	err := v.ReadConfig(bytes.NewBuffer(static))
+	ErrorMsg(err, "failed to import static resource header information requested by the server")
+	s := v.GetStringMapString("type")
+	ResourceMapType = s
 }
+
+// ViewHandle 是整个服务器对视图渲染的核心函数,开发者实现改接口对需要展示的页面进行自定义处理
+type ViewHandle func(string, http.ResponseWriter, Ctx)
 
 // ResourceFun w 响应体，path 资源真实路径，rt资源类型
 // 根据rt资源类型去找到对应的resourceMapType 存储的响应头，进行发送资源
-func (engine *Engine) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
-	data := engine.readResource(engine.projectRoot + engine.resource + path)
+func (router *Router) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
+	data := router.readResource(router.root + router.resource + path)
 	if data != nil {
 		h := w.Header()
 		if h.Get(contentType) == "" {
-			h.Set(contentType, engine.resourceMapType[rt])
+			h.Set(contentType, ResourceMapType[rt])
 		} else {
-			h.Add(contentType, engine.resourceMapType[rt])
+			h.Add(contentType, ResourceMapType[rt])
 		}
 		sendResource(w, data)
 		return
 	}
-	w.Header().Set(contentType, engine.resourceMapType[".json"])
+	w.Header().Set(contentType, ResourceMapType[".json"])
 	http.Error(w, "Server static resource does not exist", 500)
 }
 
@@ -71,28 +81,28 @@ func sendResource(w http.ResponseWriter, data []byte) {
 }
 
 // readResource 读取成功则返回结果，失败则返回nil
-func (engine *Engine) readResource(path string) []byte {
+func (router *Router) readResource(path string) []byte {
 	if f, err := ioutil.ReadFile(path); err == nil {
 		return f
 	} else {
 		if os.IsNotExist(err) {
-			engine.Error(err.Error())
+			router.Error(err.Error())
 		}
 	}
 	return nil
 }
 
-func (engine *Engine) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
+func (router *Router) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
 	if mapping == favicon {
 		ico := ""
-		r := engine.resource
+		r := router.resource
 		if len(r) > 0 {
 			r = r[:len(r)-1]
 		}
 		//检查 静态资源路径是否存在
-		if pathExists(engine.projectRoot + r) {
+		if pathExists(router.root + r) {
 			//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
-			filepath.Walk(engine.projectRoot+r, func(path string, info fs.FileInfo, err error) error {
+			filepath.Walk(router.root+r, func(path string, info fs.FileInfo, err error) error {
 				if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
 					ico = path
 				}
@@ -101,8 +111,8 @@ func (engine *Engine) resourceHandler(w http.ResponseWriter, req *http.Request, 
 			if ico == "" {
 				return
 			}
-			resource := engine.readResource(ico)
-			w.Header().Set(contentType, engine.resourceMapType[t])
+			resource := router.readResource(ico)
+			w.Header().Set(contentType, ResourceMapType[t])
 			w.Write(resource)
 		}
 		return
@@ -120,18 +130,7 @@ func (engine *Engine) resourceHandler(w http.ResponseWriter, req *http.Request, 
 	}
 	slen := len(sub)                     //计算相同字串长度
 	m := mapping[slen:]                  //把同样的长度截取出去
-	engine.resourceFun(w, mapping, m, t) //传递参数进行资源发送
-}
-
-func (engine *Engine) loadResourceHead() {
-	v := viper.New()
-	//设置viper读取json格式的配置
-	v.SetConfigType("json")
-	//读取 static 的配置串 见方法下面的全局变量
-	err := v.ReadConfig(bytes.NewBuffer(static))
-	ErrorMsg(err, "failed to import static resource header information requested by the server")
-	s := v.GetStringMapString("type")
-	engine.resourceMapType = s
+	router.resourceFun(w, mapping, m, t) //传递参数进行资源发送
 }
 
 func pathExists(path string) bool {
