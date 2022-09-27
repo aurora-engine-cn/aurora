@@ -72,9 +72,8 @@ const (
 // Router Aurora 核心路由器
 type Router struct {
 	Log
-
 	maxMultipartMemory int64
-	root               string                   //项目更目录
+	root               string                   // 项目更目录
 	resource           string                   // 静态资源管理 默认为 root 目录
 	fileService        string                   // 文件服务配置
 	proxyPool          *sync.Pool               // 创建执行实例

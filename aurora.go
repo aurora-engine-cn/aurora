@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"gitee.com/aurora-engine/aurora/cnf"
 	"gitee.com/aurora-engine/aurora/container"
 	"gitee.com/aurora-engine/aurora/utils"
 	"github.com/sirupsen/logrus"
@@ -78,7 +79,7 @@ type Engine struct {
 	controllers []*reflect.Value
 
 	// 配置实例，读取配置文件
-	config Config
+	config cnf.Config
 
 	// go web 原生服务器
 	server *http.Server
@@ -91,18 +92,6 @@ type Engine struct {
 
 func New(option ...Option) *Engine {
 	engine := NewEngine()
-	//初始化日志
-	logs := logrus.New()
-	logs.SetFormatter(&Formatter{})
-	logs.Out = os.Stdout
-	//初始化基本属性
-	engine.Log = logs
-	engine.printBanner()
-	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-	engine.control(engine)
-
-	// 加载配置文件
-	engine.viperConfig()
 	engine.router = NewRoute(engine)
 	// 加载 consul 配置
 	engine.consul()
@@ -147,8 +136,14 @@ func NewEngine() *Engine {
 	}
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot //初始化项目路径信息
-	engine.component = newIoc(engine.Log)
-	engine.space = container.NewSpace()
+	engine.space = container.NewSpace()	//初始化容器
+	logs := logrus.New()
+	logs.SetFormatter(&Formatter{})
+	logs.Out = os.Stdout
+	engine.Log = logs //初始化日志
+	engine.printBanner()
+	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
+	engine.control(engine) // 把自己注册到容器中
 	// 初始化系统参数
 	if engine.intrinsic == nil {
 		engine.intrinsic = make(map[string]Constructor)
@@ -157,6 +152,8 @@ func NewEngine() *Engine {
 	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
 	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(Ctx)))] = ctx
 	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(MultipartFile)))] = file
+	// 加载配置文件
+	engine.viperConfig()
 	return engine
 }
 
@@ -189,9 +186,12 @@ func (engine *Engine) Use(Configuration ...interface{}) {
 
 // Run 启动服务器
 func (engine *Engine) run() error {
-	// 启动路由
-	engine.StartRouter()
-
+	// 完成容器启动 ，这一步主要是针对于 属于controller处理器一部分进行操作，比如自动加载一些配置文件中的值
+	engine.dependencyInjection()
+	engine.server.BaseContext = engine.baseContext //配置 上下文对象属性
+	engine.router.defaultView = View               //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
+	engine.server.Handler = engine.router          //设置默认路由器
+	engine.router.LoadCache()
 	var p, certFile, keyFile string
 	if engine.config != nil {
 		p = engine.config.GetString("aurora.server.port")

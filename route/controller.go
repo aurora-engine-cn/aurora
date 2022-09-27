@@ -1,4 +1,4 @@
-package aurora
+package route
 
 import (
 	"errors"
@@ -239,26 +239,6 @@ func postRequest(request *http.Request, control *Controller) []string {
 		}
 	}
 	return values
-}
-
-// Control 初始化装配结构体依赖 control 参数必须是指针
-func (engine *Engine) control(control any) {
-	value, err := CheckControl(control)
-	ErrorMsg(err)
-	if engine.controllers == nil {
-		engine.controllers = make([]*reflect.Value, 0)
-	}
-	engine.controllers = append(engine.controllers, value)
-	// 把处理器注册进 ioc , 默认为类型名称
-	tf := reflect.TypeOf(control)
-	// 生成全局唯一标识符号，iocKey 用于日志
-	iocKey := fmt.Sprintf("%s-%s", tf.Elem().PkgPath(), tf.String())
-	err = engine.space.Put("", control)
-	if err != nil {
-		return
-	}
-	ErrorMsg(err)
-	engine.Info("[" + iocKey + "] initialization joins ioc container management")
 }
 
 // CheckControl 校验处理器的规范形式
