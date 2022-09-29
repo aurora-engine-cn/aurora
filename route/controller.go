@@ -3,7 +3,6 @@ package route
 import (
 	"fmt"
 	"gitee.com/aurora-engine/aurora/core"
-	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
@@ -56,7 +55,7 @@ func (control *Controller) InitArgs() {
 		arguments := control.FunType.In(i)
 		value := reflect.New(arguments).Elem()
 		//初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
-		key := utils.BaseTypeKey(value)
+		key := core.BaseTypeKey(value)
 		if _, b := control.Intrinsic[key]; b {
 			control.Args[i] = key
 			control.InvokeValues[i] = value

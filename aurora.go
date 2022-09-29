@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"gitee.com/aurora-engine/aurora/container"
+	"gitee.com/aurora-engine/aurora/core"
 	"gitee.com/aurora-engine/aurora/route"
-	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -136,10 +136,10 @@ func NewEngine() *Engine {
 	if engine.intrinsic == nil {
 		engine.intrinsic = make(map[string]web.System)
 	}
-	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.Request)))] = req
-	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
-	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(web.Context)))] = ctx
-	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))] = file
+	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(http.Request)))] = req
+	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
+	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(web.Context)))] = ctx
+	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))] = file
 	// 加载配置文件
 	engine.viperConfig()
 	return engine
