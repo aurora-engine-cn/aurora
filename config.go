@@ -2,7 +2,7 @@ package aurora
 
 import (
 	"fmt"
-	"gitee.com/aurora-engine/aurora/cnf"
+	"gitee.com/aurora-engine/aurora/web"
 	"github.com/spf13/viper"
 	"io/fs"
 	"path/filepath"
@@ -35,12 +35,12 @@ func (engine *Engine) viperConfig() {
 		ConfigPath = engine.configpath
 	}
 	if ConfigPath == "" {
-		engine.config = &cnf.ConfigCenter{viper.New(), &sync.RWMutex{}}
+		engine.config = &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
 		return
 	}
 	if engine.config == nil {
 		// 用户没有提供 配置项 则创建默认的配置处理
-		cnf := &cnf.ConfigCenter{
+		cnf := &web.ConfigCenter{
 			viper.New(),
 			&sync.RWMutex{},
 		}
@@ -84,6 +84,6 @@ func (engine *Engine) viperConfig() {
 }
 
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
-func (engine *Engine) GetConfig() cnf.Config {
+func (engine *Engine) GetConfig() web.Config {
 	return engine.config
 }

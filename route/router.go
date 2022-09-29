@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/cnf"
-	"gitee.com/aurora-engine/aurora/logger"
 	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	"html/template"
@@ -73,7 +71,7 @@ const (
 
 // Router Aurora 核心路由器
 type Router struct {
-	logger.Log
+	web.Log
 	MaxMultipartMemory int64
 	Root               string                   // 项目更目录
 	Resource           string                   // 静态资源管理 默认为 root 目录
@@ -86,7 +84,7 @@ type Router struct {
 	Controllers        []*reflect.Value         // 存储结构体全局控制器
 	DefaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
 	Intrinsic          map[string]Constructor   // 自定义系统参 初始化来自 Engine
-	config             cnf.Config               // 配置实例，读取配置文件
+	config             web.Config               // 配置实例，读取配置文件
 	Tree               map[string]*node         // 路由树根节点
 	Mux                *sync.Mutex              // 注册路由并发锁
 }

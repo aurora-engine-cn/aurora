@@ -3,7 +3,7 @@ package aurora
 import (
 	"errors"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/cnf"
+	"gitee.com/aurora-engine/aurora/web"
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -79,7 +79,7 @@ func (engine *Engine) consul() {
 			ErrorMsg(err)
 		}
 		// 刷新本地配置
-		cnf := &cnf.ConfigCenter{
+		cnf := &web.ConfigCenter{
 			Viper:   v,
 			RWMutex: &sync.RWMutex{},
 		}

@@ -1,7 +1,6 @@
 package aurora
 
 import (
-	"gitee.com/aurora-engine/aurora/cnf"
 	"gitee.com/aurora-engine/aurora/web"
 	"net/http"
 )
@@ -85,7 +84,7 @@ func useConfig(component interface{}) UseOption {
 		if component == nil {
 			return
 		}
-		if config, b := component.(cnf.Config); b {
+		if config, b := component.(web.Config); b {
 			engine.config = config
 		}
 	}

@@ -3,7 +3,6 @@ package aurora
 import (
 	"context"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/cnf"
 	"gitee.com/aurora-engine/aurora/container"
 	"gitee.com/aurora-engine/aurora/route"
 	"gitee.com/aurora-engine/aurora/utils"
@@ -165,7 +164,7 @@ func (engine *Engine) Use(Configuration ...interface{}) {
 			continue
 		}
 		//检查是否是实现 Config配置接口
-		if rt.Implements(reflect.TypeOf(new(cnf.Config)).Elem()) {
+		if rt.Implements(reflect.TypeOf(new(web.Config)).Elem()) {
 			opt = useConfig(u)
 			engine.options = append(engine.options, opt)
 			continue
