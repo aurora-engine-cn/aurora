@@ -8,14 +8,21 @@ import (
 	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 )
-
+const (
+	yml  = "application.yml"
+	yaml = "application.yaml"
+)
 var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.1)           |"
 
 type Engine struct {
@@ -47,7 +54,7 @@ type Engine struct {
 	fileService string
 
 	// 自定义系统参数
-	intrinsic map[string]route.Constructor
+	intrinsic map[string]web.System
 
 	//Aurora 配置启动配置项
 	opt []Option
@@ -120,15 +127,14 @@ func NewEngine() *Engine {
 	engine.projectRoot = projectRoot    //初始化项目路径信息
 	engine.space = container.NewSpace() //初始化容器
 	logs := logrus.New()
-	logs.SetFormatter(&Formatter{})
+	logs.SetFormatter(&web.Formatter{})
 	logs.Out = os.Stdout
 	engine.Log = logs //初始化日志
 	engine.printBanner()
 	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-	engine.space.Put("", engine) // 把自己注册到容器中
 	// 初始化系统参数
 	if engine.intrinsic == nil {
-		engine.intrinsic = make(map[string]route.Constructor)
+		engine.intrinsic = make(map[string]web.System)
 	}
 	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.Request)))] = req
 	engine.intrinsic[utils.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
@@ -200,6 +206,79 @@ func (engine *Engine) run() error {
 	}
 	return engine.server.Serve(l)
 }
+
+// viperConfig 配置并加载 application.yml 配置文件
+func (engine *Engine) viperConfig() {
+	var ConfigPath string
+	var err error
+	if engine.configpath == "" {
+		// 扫描配置文件
+		filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
+			//找到配置及文件,基于根目录优先加载最外层的application.yml
+			if !d.IsDir() && (strings.HasSuffix(p, yml) || (strings.HasSuffix(p, yaml))) && ConfigPath == "" {
+				//修复 项目加载配置覆盖，检索项目配置文件，避免内层同名配置文件覆盖外层，这个情况可能发生在 开发者把两个go mod 项目嵌套在一起，导致配置被覆盖
+				//此处校验，根据检索的更路径，只加载最外层的配置文件
+				ConfigPath = p
+			}
+			return nil
+		})
+	} else {
+		ConfigPath = engine.configpath
+	}
+	if ConfigPath == "" {
+		engine.config = &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
+		return
+	}
+	if engine.config == nil {
+		// 用户没有提供 配置项 则创建默认的配置处理
+		cnf := &web.ConfigCenter{
+			viper.New(),
+			&sync.RWMutex{},
+		}
+		cnf.SetConfigFile(ConfigPath)
+		err = cnf.ReadInConfig()
+		ErrorMsg(err)
+		engine.config = cnf
+	}
+	// 加载基础配置
+	if engine.config != nil {                      //是否加载配置文件 覆盖配置项
+		engine.Info("the configuration file is loaded successfully.")
+		// 读取web服务端口号配置
+		port := engine.config.GetString("aurora.server.port")
+		if port != "" {
+			engine.port = port
+		}
+		// 读取静态资源配置路径
+		engine.resource = "/"
+		p := engine.config.GetString("aurora.resource")
+		// 构建路径拼接，此处在路径前后加上斜杠 用于静态资源的路径凭借方便
+		if p != "" {
+			if p[:1] != "/" {
+				p = "/" + p
+			}
+			if p[len(p)-1:] != "/" {
+				p = p + "/"
+			}
+			engine.resource = p
+		}
+		// 读取文件服务配置
+		p = engine.config.GetString("aurora.server.file")
+		engine.fileService = p
+		engine.Info(fmt.Sprintf("server static resource root directory:%1s", engine.resource))
+		// 读取服务名称
+		name := engine.config.GetString("aurora.application.name")
+		if name != "" {
+			engine.name = name
+			engine.Info("the service name is " + engine.name)
+		}
+	}
+}
+
+// GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
+func (engine *Engine) GetConfig() web.Config {
+	return engine.config
+}
+
 
 func (engine *Engine) printBanner() {
 	fmt.Printf("%s\n\r", banner)

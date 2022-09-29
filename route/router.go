@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	"html/template"
 	"net/http"
@@ -83,7 +82,7 @@ type Router struct {
 	Middlewares        []web.Middleware             // 全局中间件
 	Controllers        []*reflect.Value         // 存储结构体全局控制器
 	DefaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	Intrinsic          map[string]Constructor   // 自定义系统参 初始化来自 Engine
+	Intrinsic          map[string]web.System   // 自定义系统参 初始化来自 Engine
 	config             web.Config               // 配置实例，读取配置文件
 	Tree               map[string]*node         // 路由树根节点
 	Mux                *sync.Mutex              // 注册路由并发锁
@@ -164,39 +163,6 @@ func (router *Router) LoadCache() {
 	}
 }
 
-// ControlInjection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
-// 此处专门对控制器
-func (router *Router) ControlInjection() {
-	if router.Controllers == nil {
-		return
-	}
-	router.Info("Initialize load controller dependencies")
-	l := len(router.Controllers)
-	for i := 0; i < l; i++ {
-		control := *router.Controllers[i]
-		if control.Kind() == reflect.Ptr {
-			control = control.Elem()
-		}
-		for j := 0; j < control.NumField(); j++ {
-			field := control.Type().Field(j)
-			//查询 value 属性 读取config中的基本属性
-			if v, b := field.Tag.Lookup("value"); b {
-				if v == "" {
-					router.Warn("value tag value is ''")
-					continue
-				}
-				get := router.config.Get(v)
-				if get == nil {
-					//如果查找结果大小等于0 则表示不存在
-					continue
-				}
-				//把查询到的 value 初始化给指定字段
-				err := utils.StarAssignment(control.Field(j), get)
-				ErrorMsg(err)
-			}
-		}
-	}
-}
 
 // ——————————————————————————————————————————————————————————————————————————路由注册————————————————————————————————————————————————————————————————————————————————————————————
 

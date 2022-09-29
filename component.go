@@ -1,5 +1,10 @@
 package aurora
 
+import (
+	"gitee.com/aurora-engine/aurora/core"
+	"reflect"
+)
+
 // Component 命名组件
 type Component map[string]interface{}
 
@@ -43,5 +48,33 @@ func (engine *Engine) ioc() {
 	err := engine.space.Start()
 	if err != nil {
 		ErrorMsg(err,"Container initialization failed")
+	}
+	engine.injection()
+}
+
+// injection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
+func (engine *Engine) injection() {
+
+	// 获取容器中的主缓存
+	Controllers:=engine.space.Cache()
+	for _, c := range Controllers {
+		control:=*c
+		if control.Kind() == reflect.Ptr {
+			control = control.Elem()
+		}
+		for j := 0; j < control.NumField(); j++ {
+			field := control.Type().Field(j)
+			//查询 value 属性 读取config中的基本属性
+			if v, b := field.Tag.Lookup("value"); b && v!=""{
+				get := engine.config.Get(v)
+				if get == nil {
+					//如果查找结果大小等于0 则表示不存在
+					continue
+				}
+				//把查询到的 value 初始化给指定字段
+				err := core.StarAssignment(control.Field(j), get)
+				ErrorMsg(err)
+			}
+		}
 	}
 }

@@ -6,11 +6,9 @@ import (
 )
 
 const (
-	auroraQueryCache         = "auroraQueryCache"
-	auroraFormCache          = "auroraFormCache"
-	auroraMaxMultipartMemory = "auroraMaxMultipartMemory"
-	request                  = "AuroraRequest"  //go 原生请求
-	response                 = "AuroraResponse" //go 原生响应
+	AuroraMultipartFile         = "AuroraMultipartFile"
+	AuroraRequest                  = "AuroraRequest"  //go 原生请求
+	AuroraResponse                 = "AuroraResponse" //go 原生响应
 )
 
 // Context 上下文参数，主要用于在业务之间传递 数据使用
@@ -26,12 +24,19 @@ func (ctx Context) Clear() {
 
 // Request 返回元素 Request
 func (ctx Context) Request() *http.Request {
-	return ctx[request].(*http.Request)
+	return ctx[AuroraRequest].(*http.Request)
 }
 
 // Response 返回元素 ResponseWriter
 func (ctx Context) Response() http.ResponseWriter {
-	return ctx[response].(http.ResponseWriter)
+	return ctx[AuroraResponse].(http.ResponseWriter)
+}
+
+func (ctx Context) MultipartFile() *MultipartFile {
+	if file,b:=ctx[AuroraMultipartFile];b{
+		return file.(*MultipartFile)
+	}
+	return nil
 }
 
 // Return 设置中断处理，多次调用会覆盖之前设置的值

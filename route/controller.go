@@ -2,6 +2,7 @@ package route
 
 import (
 	"fmt"
+	"gitee.com/aurora-engine/aurora/core"
 	"gitee.com/aurora-engine/aurora/utils"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
@@ -36,7 +37,7 @@ type Controller struct {
 	ReturnValues    []reflect.Value        //返回参数实例
 	Fun             reflect.Value          //将被调用的函数,注册阶段已经被构建成为反射类型
 	FunType         reflect.Type
-	Intrinsic       map[string]Constructor // 自定赋值参数列表(系统参数配置)
+	Intrinsic       map[string]web.System // 自定赋值参数列表(系统参数配置)
 }
 
 // InitArgs 初始化参数信息，注册函数阶段调用
@@ -131,7 +132,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 		var data interface{}
 		var err error
 		if vr, b := control.Intrinsic[v]; b {
-			prama := vr(control.Proxy)
+			prama := vr(control.Context)
 			pv := reflect.ValueOf(prama)
 			if !pv.Type().AssignableTo(control.InvokeValues[i].Type()) {
 				panic("The required type is'" + control.InvokeValues[i].Type().String() + "' The provided type is '" + pv.Type().String() + "'" +
@@ -172,7 +173,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 				data = v
 			}
 		}
-		err = utils.StarAssignment(control.InvokeValues[i], data)
+		err = core.StarAssignment(control.InvokeValues[i], data)
 		ErrorMsg(err)
 	}
 
@@ -207,7 +208,7 @@ func postRequest(request *http.Request, control *Controller) []string {
 	if form != nil {
 		if form.File != nil {
 			//封装解析好的 文件部分
-			control.File = &web.MultipartFile{File: form.File}
+			control.Context[web.AuroraMultipartFile] = &web.MultipartFile{File: form.File}
 		}
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式

@@ -45,7 +45,7 @@ func useMiddleware(middleware interface{}) UseOption {
 
 func useLogrus(log interface{}) UseOption {
 	return func(engine *Engine) {
-		engine.Log = log.(Log)
+		engine.Log = log.(web.Log)
 	}
 }
 
