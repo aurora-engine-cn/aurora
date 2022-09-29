@@ -1,4 +1,4 @@
-package aurora
+package container
 
 import (
 	"errors"
@@ -15,16 +15,7 @@ import (
 
 */
 
-func newIoc(log Log) *ioc {
-	return &ioc{
-		Log:   log,
-		id:    &sync.Map{},
-		first: make(map[string]*reflect.Value),
-	}
-}
-
 type ioc struct {
-	Log
 	kv    map[string]interface{}    // 初始缓存容器
 	first map[string]*reflect.Value //一级,存放有部分属性未初始化的容器
 	id    *sync.Map                 //主缓存容器

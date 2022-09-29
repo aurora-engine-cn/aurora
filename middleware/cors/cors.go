@@ -1,7 +1,7 @@
 package cors
 
 import (
-	"gitee.com/aurora-engine/aurora"
+	"gitee.com/aurora-engine/aurora/web"
 	"net/http"
 	"strings"
 )
@@ -55,8 +55,8 @@ func (c *Cors) Origin(host string, method ...string) {
 	c.Host[host] = method
 }
 
-func (c *Cors) Cors() aurora.Middleware {
-	return func(ctx aurora.Ctx) bool {
+func (c *Cors) Cors() web.Middleware {
+	return func(ctx web.Context) bool {
 		return c.requestCheck(ctx.Request(), ctx.Response())
 	}
 }

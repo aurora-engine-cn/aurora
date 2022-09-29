@@ -3,6 +3,7 @@ package aurora
 import (
 	"errors"
 	"fmt"
+	"gitee.com/aurora-engine/aurora/cnf"
 	"github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 type Consul struct {
@@ -53,7 +53,7 @@ func (engine *Engine) consul() {
 	if ref[len(ref)-1:] != "s" {
 		panic("configuration refresh time format error")
 	}
-	refresh, err := strconv.Atoi(ref[:len(ref)-1])
+	_, err := strconv.Atoi(ref[:len(ref)-1])
 	ErrorMsg(err)
 	// 解析注册地址
 	hosts := strings.Split(registers, ",")
@@ -79,27 +79,27 @@ func (engine *Engine) consul() {
 			ErrorMsg(err)
 		}
 		// 刷新本地配置
-		cnf := &ConfigCenter{
-			v,
-			&sync.RWMutex{},
+		cnf := &cnf.ConfigCenter{
+			Viper:   v,
+			RWMutex: &sync.RWMutex{},
 		}
 		engine.config = cnf
 		// 配置文件 监听
-		go func(center *ConfigCenter) {
-			for true {
-				time.Sleep(time.Duration(refresh) * time.Second)
-				//old := center.GetStringMap("aurora")
-				err = center.WatchRemoteConfig()
-				if err != nil {
-					engine.Error(err.Error())
-					continue
-				}
-				//new := center.GetStringMap("aurora")
-			}
-		}(cnf)
+		//go func(center *cnf.) {
+		//	for true {
+		//		time.Sleep(time.Duration(refresh) * time.Second)
+		//		//old := center.GetStringMap("aurora")
+		//		err = center.WatchRemoteConfig()
+		//		if err != nil {
+		//			engine.Error(err.Error())
+		//			continue
+		//		}
+		//		//new := center.GetStringMap("aurora")
+		//	}
+		//}(cnf)
 	}
 
-	// 生成 web 服务
+	// 生成 app 服务
 	registration := engine.getAgentServiceRegistration()
 	// 向客户端注册服务
 	for _, consul := range consuls {
@@ -145,7 +145,7 @@ func (engine *Engine) getConsulClientConfig() *api.Config {
 	return config
 }
 
-// 生成当前 web 服务注册信息
+// 生成当前 app 服务注册信息
 func (engine *Engine) getAgentServiceRegistration() *api.AgentServiceRegistration {
 	// 读取 服务 名称
 	name := engine.config.GetString("aurora.server.name")

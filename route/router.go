@@ -1,11 +1,13 @@
 package route
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"gitee.com/aurora-engine/aurora"
 	"gitee.com/aurora-engine/aurora/cnf"
+	"gitee.com/aurora-engine/aurora/logger"
 	"gitee.com/aurora-engine/aurora/utils"
+	"gitee.com/aurora-engine/aurora/web"
 	"html/template"
 	"net/http"
 	"os"
@@ -67,27 +69,26 @@ import (
 const (
 	request  = "AuroraRequest"  //go 原生请求
 	response = "AuroraResponse" //go 原生响应
-	iocs     = "AuroraIoc"      //依赖容器
 )
 
 // Router Aurora 核心路由器
 type Router struct {
-	aurora.Log
-	maxMultipartMemory int64
-	root               string                   // 项目更目录
-	resource           string                   // 静态资源管理 默认为 root 目录
-	fileService        string                   // 文件服务配置
-	proxyPool          *sync.Pool               // 创建执行实例
-	pathPool           *sync.Pool               // 分配路径构建
-	mx                 *sync.Mutex              // 注册路由并发锁
-	catch              map[reflect.Type]Catch   // 全局错误捕捉处理
-	api                map[string][]controlInfo // 接口信息
-	middleware         []Middleware             // 全局中间件
-	tree               map[string]*node         // 路由树根节点
-	controllers        []*reflect.Value         // 存储结构体全局控制器
-	defaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	intrinsic          map[string]Constructor   // 自定义系统参 初始化来自 Engine
+	logger.Log
+	MaxMultipartMemory int64
+	Root               string                   // 项目更目录
+	Resource           string                   // 静态资源管理 默认为 root 目录
+	FileService        string                   // 文件服务配置
+	ProxyPool          *sync.Pool               // 创建执行实例
+	PathPool           *sync.Pool               // 分配路径构建
+	Catches            map[reflect.Type]Catch   // 全局错误捕捉处理
+	Api                map[string][]web.ControlInfo // 接口信息
+	Middlewares        []web.Middleware             // 全局中间件
+	Controllers        []*reflect.Value         // 存储结构体全局控制器
+	DefaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	Intrinsic          map[string]Constructor   // 自定义系统参 初始化来自 Engine
 	config             cnf.Config               // 配置实例，读取配置文件
+	Tree               map[string]*node         // 路由树根节点
+	Mux                *sync.Mutex              // 注册路由并发锁
 }
 
 // node 路由节点
@@ -95,71 +96,86 @@ type node struct {
 	Path       string       //当前节点路径
 	FullPath   string       //当前处理器全路径
 	Count      int          //路径数量
-	middleware []Middleware //中间处理函数
+	middleware []web.Middleware //中间处理函数
 	Control    *Controller  //服务处理函数
 	Child      []*node      //子节点
 }
 
-func (router *Router) Use(Configuration ...any) {
+func New() *Router {
+	router:=new(Router)
+	router.ProxyPool=&sync.Pool{
+		New: func() any{
+			return &Proxy{}
+		},
+	}
+	router.PathPool=&sync.Pool{
+		New: func() any{
+			return &bytes.Buffer{}
+		},
+	}
+	router.Mux=&sync.Mutex{}
 
+
+	return router
 }
 
-func (router *Router) use(middleware ...Middleware) {
+func (router *Router) Use(middleware ...web.Middleware) {
 	if middleware == nil {
 		return
 	}
-	if router.middleware == nil {
-		router.middleware = make([]Middleware, len(middleware))
+	if router.Middlewares == nil {
+		router.Middlewares = make([]web.Middleware, len(middleware))
 		for i := range middleware {
-			router.middleware[i] = middleware[i]
+			router.Middlewares[i] = middleware[i]
 		}
 		return
 	}
 	for i := range middleware {
-		router.middleware = append(router.middleware, middleware[i])
+		router.Middlewares = append(router.Middlewares, middleware[i])
 	}
 }
+
 
 func (router *Router) Catch(err any) {
 	router.registerErrorCatch(err)
 }
 
 // Cache 通用注册器,封装接口信息到缓存中
-func (router *Router) Cache(method string, url string, control any, middleware ...Middleware) {
-	if router.api == nil {
-		router.api = make(map[string][]controlInfo)
+func (router *Router) Cache(method string, url string, control any, middleware ...web.Middleware) {
+	if router.Api == nil {
+		router.Api = make(map[string][]web.ControlInfo)
 	}
-	api := controlInfo{path: url, control: control, middleware: middleware}
-	if _, b := router.api[method]; !b {
-		router.api[method] = make([]controlInfo, 0)
-		router.api[method] = append(router.api[method], api)
+	api := web.ControlInfo{Path: url, Control: control, Middleware: middleware}
+	if _, b := router.Api[method]; !b {
+		router.Api[method] = make([]web.ControlInfo, 0)
+		router.Api[method] = append(router.Api[method], api)
 	} else {
-		router.api[method] = append(router.api[method], api)
+		router.Api[method] = append(router.Api[method], api)
 	}
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
 func (router *Router) LoadCache() {
-	if router.api != nil {
-		for method, infos := range router.api {
+	if router.Api != nil {
+		for method, infos := range router.Api {
 			for _, info := range infos {
-				router.Register(method, info.path, info.control, info.middleware...)
+				router.Register(method, info.Path, info.Control, info.Middleware...)
 			}
 		}
-		router.api = nil
+		router.Api = nil
 	}
 }
 
 // ControlInjection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
 // 此处专门对控制器
 func (router *Router) ControlInjection() {
-	if router.controllers == nil {
+	if router.Controllers == nil {
 		return
 	}
 	router.Info("Initialize load controller dependencies")
-	l := len(router.controllers)
+	l := len(router.Controllers)
 	for i := 0; i < l; i++ {
-		control := *router.controllers[i]
+		control := *router.Controllers[i]
 		if control.Kind() == reflect.Ptr {
 			control = control.Elem()
 		}
@@ -191,7 +207,7 @@ func (router *Router) ControlInjection() {
 // path :注册路径
 // control : 处理器(需要传递函数)
 // middleware : 路径中间件
-func (router *Router) Register(method, path string, control any, middleware ...Middleware) {
+func (router *Router) Register(method, path string, control any, middleware ...web.Middleware) {
 	//非空校验,
 	if path == "" || control == nil {
 		// 空字符串路径不能注册
@@ -209,19 +225,19 @@ func (router *Router) Register(method, path string, control any, middleware ...M
 		return
 	}
 
-	router.mx.Lock()
-	defer router.mx.Unlock()
+	router.Mux.Lock()
+	defer router.Mux.Unlock()
 	//初始化路由树
-	if router.tree == nil {
-		router.tree = make(map[string]*node)
+	if router.Tree == nil {
+		router.Tree = make(map[string]*node)
 	}
-	if _, ok := router.tree[method]; !ok {
+	if _, ok := router.Tree[method]; !ok {
 		//初始化 请求类型根
 		//初始化根路径,此处是更改 路径注册中的一些bug 而添加，由于 /路径注册的顺序导致了一些意想不到的bug, 特殊情况下 /aa  /a / 等顺序会导致其它两个出现错误
-		router.tree[method] = &node{Path: "/"}
+		router.Tree[method] = &node{Path: "/"}
 	}
 	//拿到根路径
-	root := router.tree[method]
+	root := router.Tree[method]
 	router.add(method, root, path, path, control, middleware...) //把路径添加到根路径中中
 }
 
@@ -229,11 +245,11 @@ func (router *Router) Register(method, path string, control any, middleware ...M
 // method 指定请求类型，root 根路径，Path和fun 被添加的路径和处理函数，path携带路径副本添加过程中不会有任何操作仅用于日志处理
 // method: 请求类型(日志相关参数)
 // path: 插入的路径(日志相关参数)
-func (router *Router) add(method string, root *node, Path string, path string, fun any, middleware ...Middleware) {
+func (router *Router) add(method string, root *node, Path string, path string, fun any, middleware ...web.Middleware) {
 	var l string
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.intrinsic}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic}
 	control.InitArgs()
 	//初始化根,此处的初始化根在Aurora 实例化阶段代替，该段if后期可以暂时忽略，没有初始化的根路由 的第一个节点默认为 ""以此判断初始化
 	if root.Path == "" && root.Child == nil {
@@ -384,11 +400,11 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 // root: 根合并相关参数
 // Path: 根合并相关参数
 // fun: 根合并相关参数
-func (router *Router) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...Middleware) bool {
+func (router *Router) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...web.Middleware) bool {
 	//处理反射
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.intrinsic}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic}
 	control.InitArgs()
 	pub := router.findPublicRoot(method, root.Path, Path, path) //公共路径
 	if pub != "" {
@@ -508,16 +524,16 @@ func (router *Router) findPublicRoot(method, p1, p2, path string) string {
 // urlRouter 检索指定的path路由
 // method 请求类型，path 查询路径，rw，req http生成的请求响应,
 // ctx 中间件请求上下文参数
-func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx Ctx) (*node, []string, map[string]interface{}, Ctx) {
+func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx web.Context) (*node, []string, map[string]interface{}, web.Context) {
 	if ctx == nil {
-		ctx = make(Ctx)
+		ctx = make(web.Context)
 		ctx[request] = req
 		ctx[response] = rw
 		//ctx[iocs] = router.component
 		//ctx[auroraMaxMultipartMemory] = router.MaxMultipartMemory
 	}
 	// 全局中间件
-	middlewares := router.middleware
+	middlewares := router.Middlewares
 	if middlewares != nil {
 		for _, middleware := range middlewares {
 			if middleware == nil {
@@ -532,14 +548,14 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 		return nil, nil, nil, nil
 	}
 	if index := strings.Index(path, "."); index != -1 {
-		path = router.fileService
+		path = router.FileService
 	}
 	//查找指定的Method树
-	if _, ok := router.tree[method]; !ok {
+	if _, ok := router.Tree[method]; !ok {
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
 	}
-	c, u, args := router.bfs(router.tree[method], path)
+	c, u, args := router.bfs(router.Tree[method], path)
 	if c == nil {
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
@@ -593,8 +609,8 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // 请求处理
-func (router *Router) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx Ctx) {
-	proxy := router.proxyPool.Get().(*Proxy)
+func (router *Router) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx web.Context) {
+	proxy := router.ProxyPool.Get().(*Proxy)
 	proxy.Router = router
 	proxy.Rew = rw
 	proxy.Req = req
@@ -606,7 +622,7 @@ func (router *Router) handle(c *node, u []string, args map[string]interface{}, r
 	proxy.view = View
 	proxy.Recover = errRecover
 	proxy.start()
-	router.proxyPool.Put(proxy)
+	router.ProxyPool.Put(proxy)
 }
 
 // 获取注册接口函数名称
@@ -723,7 +739,7 @@ func (router *Router) isStatic(path string, rw http.ResponseWriter, req *http.Re
 	mapping := path
 	if index := strings.LastIndex(req.URL.Path, "."); index != -1 { //此处判断这个请求可能为静态资源处理
 		// 文件服务器校验
-		if strings.HasPrefix(path, router.fileService) {
+		if strings.HasPrefix(path, router.FileService) {
 			return false
 		}
 		t := req.URL.Path[index:] //截取可能的资源类型
@@ -733,7 +749,7 @@ func (router *Router) isStatic(path string, rw http.ResponseWriter, req *http.Re
 	return false
 }
 
-func View(html string, rew http.ResponseWriter, data Ctx) {
+func View(html string, rew http.ResponseWriter, data web.Context) {
 	parseFiles, err := template.ParseFiles(html)
 	ErrorMsg(err)
 	err = parseFiles.Execute(rew, data)

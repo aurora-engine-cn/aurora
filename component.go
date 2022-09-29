@@ -22,7 +22,10 @@ func (engine *Engine) ioc() {
 		for _, constructor := range engine.build {
 			// 执行构造 生成组件放入到 ioc中
 			c := constructor()
-			engine.control(c)
+			err := engine.space.Put("", c)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	if engine.components != nil {
@@ -39,10 +42,6 @@ func (engine *Engine) ioc() {
 	//启动容器 ,给容器中的组件进行依赖初始化,容器加载出错 结束运行
 	err := engine.space.Start()
 	if err != nil {
-		ErrorMsg(err)
+		ErrorMsg(err,"Container initialization failed")
 	}
-}
-
-func (engine *Engine) StartRouter() {
-
 }

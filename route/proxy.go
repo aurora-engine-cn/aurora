@@ -3,6 +3,7 @@ package route
 import (
 	"bytes"
 	"gitee.com/aurora-engine/aurora/utils/stringutils"
+	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
 	"reflect"
@@ -16,9 +17,9 @@ type Proxy struct {
 	errType     reflect.Type
 	Rew         http.ResponseWriter    // http 响应体
 	Req         *http.Request          // http 请求体
-	Middleware  []Middleware           // 当前控制器待执行中间件
-	Context     Ctx                    // 请求上下文数据
-	File        *MultipartFile         // Post文件上传解析值
+	Middleware  []web.Middleware           // 当前控制器待执行中间件
+	Context     web.Context                    // 请求上下文数据
+	File        *web.MultipartFile         // Post文件上传解析值
 	Control     Controller             // 待处理执行器
 	values      []reflect.Value        // 处理器返回值
 	UrlVariable []string               // REST API 顺序值
@@ -47,7 +48,7 @@ func (proxy *Proxy) start() {
 		}
 	}
 	// 请求参数解析
-	c.analysisInput(proxy.Req, proxy.Rew, proxy.Context)
+	c.analysisInput(proxy.Req)
 	// 执行请求方法
 	proxy.values = c.invoke()
 
@@ -85,7 +86,7 @@ func (proxy *Proxy) resultHandler() {
 		case reflect.String:
 			value := proxy.values[i].Interface().(string)
 			stringData(proxy, value)
-		//对于接口的返回，目前只做了对错误的支持，web 开发中对抽象类型的设计应该不会太多，大部分直接返回实体数据了
+		//对于接口的返回，目前只做了对错误的支持，app 开发中对抽象类型的设计应该不会太多，大部分直接返回实体数据了
 		case reflect.Ptr, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
 			otherData(proxy, proxy.values[i])
 		case reflect.Interface:
@@ -97,7 +98,7 @@ func (proxy *Proxy) resultHandler() {
 // catchError 处理错误捕捉
 func (proxy *Proxy) catchError(errType reflect.Type, errValue reflect.Value) {
 	v := errValue.Interface()
-	if catch, b := proxy.catch[errType]; b {
+	if catch, b := proxy.Catches[errType]; b {
 		//如果进行了错误捕捉,由于这个请求在同一个处理内，可以选择覆盖掉之前的返回内容，然后继续通过处理方法对返回值进行处理, 在错误处理器中通常不应该再次返回错误
 		proxy.values = catch.invoke(errValue)
 		proxy.resultHandler()
@@ -114,20 +115,20 @@ func (proxy *Proxy) catchError(errType reflect.Type, errValue reflect.Value) {
 // 接口返回string类型处理函数
 func stringData(proxy *Proxy, value string) {
 	if strings.HasSuffix(value, ".html") {
-		HtmlPath := proxy.pathPool.Get().(*bytes.Buffer)
+		HtmlPath := proxy.PathPool.Get().(*bytes.Buffer)
 		if value[:1] == "/" {
 			value = value[1:]
 		}
 		//拼接项目路径
-		HtmlPath.WriteString(proxy.root)
+		HtmlPath.WriteString(proxy.Root)
 		//拼接 静态资源路径 默认情况下为 '/'
-		HtmlPath.WriteString(proxy.resource)
+		HtmlPath.WriteString(proxy.Resource)
 		//拼接 资源真实路径
 		HtmlPath.WriteString(value)
 		//得到完整 html 页面资源path
 		html := HtmlPath.String()
 		HtmlPath.Reset() //清空buffer，以便下次利用
-		proxy.pathPool.Put(HtmlPath)
+		proxy.PathPool.Put(HtmlPath)
 		proxy.Rew.Header().Set(contentType, ResourceMapType[".html"])
 		proxy.view(html, proxy.Rew, proxy.Context) //视图解析 响应 html 页面
 		return

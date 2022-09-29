@@ -1,9 +1,9 @@
 package route
 
 import (
-	"errors"
 	"fmt"
 	"gitee.com/aurora-engine/aurora/utils"
+	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"net/http"
@@ -22,16 +22,10 @@ import (
 	基于go反射的特点，处理器传递参数和前端传递参数的名称没有任何关系，只和顺序有关(调用服务器接口就和调用函数传参一样，需要给对对应类型)
 
 */
-// control 用于存储在服务器启动之前注册的接口信息，需要在加载完配置项之后进行统一注册
-type controlInfo struct {
-	path       string
-	control    any
-	middleware []Middleware
-}
 
 type Controller struct {
 	*Proxy
-	Context         Ctx                    //上下文数据
+	Context      web.Context                    //上下文数据
 	UrlVariable     []string               //路径参数,按顺序依次
 	RESTFul         map[string]interface{} // K/V 路径参数
 	InNum           int                    //处理器入参参数个数
@@ -87,7 +81,7 @@ func (control *Controller) invoke() []reflect.Value {
 }
 
 // 入参解析
-func (control *Controller) analysisInput(request *http.Request, response http.ResponseWriter, ctx Ctx) {
+func (control *Controller) analysisInput(request *http.Request) {
 	// var values []string 用于接收 参数列表，该列表顺序规则为(rest full URL参数永远放在最前):
 	// values:   [rest ful路径参数,GET 请求参数,POST请求体参数]
 	var values []string
@@ -208,12 +202,12 @@ func getRequest(request *http.Request, control *Controller) []string {
 func postRequest(request *http.Request, control *Controller) []string {
 	values := make([]string, 0)
 	//处理文件上传处理 该处理操作在 中间件阶段可能被执行，两种情况同时出现的情况未测试，可能出现bug
-	request.ParseMultipartForm(control.maxMultipartMemory)
+	request.ParseMultipartForm(control.MaxMultipartMemory)
 	form := request.MultipartForm
 	if form != nil {
 		if form.File != nil {
 			//封装解析好的 文件部分
-			control.File = &MultipartFile{File: form.File}
+			control.File = &web.MultipartFile{File: form.File}
 		}
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式
@@ -241,23 +235,7 @@ func postRequest(request *http.Request, control *Controller) []string {
 	return values
 }
 
-// CheckControl 校验处理器的规范形式
-func CheckControl(control any) (*reflect.Value, error) {
-	v := reflect.ValueOf(control)
-	//指针类型校验
-	if v.Kind() != reflect.Ptr {
-		return nil, errors.New("'" + v.Type().String() + "' not pointer, requires a pointer parameter")
-	}
-	//空指针校验
-	if v.IsNil() {
-		return nil, errors.New("null pointer")
-	}
-	//指针类型结构体校验
-	if v.Elem().Kind() != reflect.Struct {
-		return nil, errors.New("requires a struct type")
-	}
-	return &v, nil
-}
+
 
 // 检查结构体参数中的约束是否满足对应检查
 func (control *Controller) checkConstrain() error {

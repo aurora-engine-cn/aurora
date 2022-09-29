@@ -2,6 +2,7 @@ package route
 
 import (
 	"bytes"
+	"gitee.com/aurora-engine/aurora/web"
 	"github.com/spf13/viper"
 	"io/fs"
 	"io/ioutil"
@@ -51,12 +52,12 @@ func init() {
 }
 
 // ViewHandle 是整个服务器对视图渲染的核心函数,开发者实现改接口对需要展示的页面进行自定义处理
-type ViewHandle func(string, http.ResponseWriter, Ctx)
+type ViewHandle func(string, http.ResponseWriter, web.Context)
 
 // ResourceFun w 响应体，path 资源真实路径，rt资源类型
 // 根据rt资源类型去找到对应的resourceMapType 存储的响应头，进行发送资源
 func (router *Router) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
-	data := router.readResource(router.root + router.resource + path)
+	data := router.readResource(router.Root + router.Resource + path)
 	if data != nil {
 		h := w.Header()
 		if h.Get(contentType) == "" {
@@ -95,14 +96,14 @@ func (router *Router) readResource(path string) []byte {
 func (router *Router) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
 	if mapping == favicon {
 		ico := ""
-		r := router.resource
+		r := router.Resource
 		if len(r) > 0 {
 			r = r[:len(r)-1]
 		}
 		//检查 静态资源路径是否存在
-		if pathExists(router.root + r) {
+		if pathExists(router.Root + r) {
 			//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
-			filepath.Walk(router.root+r, func(path string, info fs.FileInfo, err error) error {
+			filepath.Walk(router.Root+r, func(path string, info fs.FileInfo, err error) error {
 				if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
 					ico = path
 				}
@@ -142,21 +143,6 @@ func pathExists(path string) bool {
 		return false
 	}
 	return false
-}
-
-func find(s, sub string, n int) int {
-	c := 0
-	for i := 0; i < len(s); i++ {
-		if s[i:i+1] == sub {
-			if c < n {
-				c++
-			}
-			if c == n {
-				return i
-			}
-		}
-	}
-	return -1
 }
 
 // 用于加载静态资源类型配置
@@ -443,7 +429,7 @@ var static = []byte(`{
     ".proxy": "application/x-ns-proxy-autoconfig",
     ".ps": "application/postscript",
     ".ptlk": "application/listenup",
-    ".pub": "application/x-mspublisher",
+    ".app": "application/x-mspublisher",
     ".pvx": "video/x-pv-pvx",
     ".qcp": "audio/vnd.qcelp",
     ".qt": "video/quicktime",
@@ -583,7 +569,7 @@ var static = []byte(`{
     ".wbmp": "image/vnd.wap.wbmp",
     ".wcm": "application/vnd.ms-works",
     ".wdb": "application/vnd.ms-works",
-    ".web": "application/vnd.xara",
+    ".app": "application/vnd.xara",
     ".wi": "image/wavelet",
     ".wis": "application/x-InstallShield",
     ".wks": "application/vnd.ms-works",

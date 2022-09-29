@@ -1,13 +1,12 @@
 package container
+// container.go 用于重构 ioc.go
+// 从 go1.19 版本开始 container.go 只接受指针变量放入容器
 
 import (
 	"errors"
 	"fmt"
 	"reflect"
 )
-
-// container.go 用于重构 ioc.go
-
 func NewSpace() *Space {
 	return &Space{
 		initializeCache: make(map[string]any),

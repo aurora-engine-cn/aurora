@@ -79,9 +79,9 @@ func (router *Router) registerErrorCatch(err any) {
 		},
 		fun: reflect.ValueOf(err),
 	}
-	if router.catch == nil {
-		router.catch = map[reflect.Type]Catch{in: c}
+	if router.Catches == nil {
+		router.Catches = map[reflect.Type]Catch{in: c}
 		return
 	}
-	router.catch[in] = c
+	router.Catches[in] = c
 }

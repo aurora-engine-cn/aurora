@@ -1,4 +1,4 @@
-package aurora
+package web
 
 import (
 	"io"

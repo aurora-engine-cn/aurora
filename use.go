@@ -1,6 +1,8 @@
 package aurora
 
 import (
+	"gitee.com/aurora-engine/aurora/cnf"
+	"gitee.com/aurora-engine/aurora/web"
 	"net/http"
 )
 
@@ -24,17 +26,20 @@ func useConstructors(control interface{}) UseOption {
 // useControl
 func useControl(control interface{}) UseOption {
 	return func(a *Engine) {
-		a.control(control)
+		err := a.space.Put("", control)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-// useMiddleware Use的中间件注册
+// useMiddleware Use 的中间件注册
 func useMiddleware(middleware interface{}) UseOption {
 	return func(engine *Engine) {
-		if m, b := middleware.(Middleware); !b {
+		if m, b := middleware.(web.Middleware); !b {
 			return
 		} else {
-			engine.router.use(m)
+			engine.router.Use(m)
 		}
 	}
 }
@@ -80,7 +85,7 @@ func useConfig(component interface{}) UseOption {
 		if component == nil {
 			return
 		}
-		if config, b := component.(Config); b {
+		if config, b := component.(cnf.Config); b {
 			engine.config = config
 		}
 	}
