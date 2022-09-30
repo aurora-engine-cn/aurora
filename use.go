@@ -13,9 +13,9 @@ type UseConfiguration func(interface{}) UseOption
 // useController Use的 处理器注册
 func useConstructors(control interface{}) UseOption {
 	return func(engine *Engine) {
-		if constructors, b := control.(Constructors); b {
+		if constructors, b := control.(web.Constructor); b {
 			if engine.build == nil {
-				engine.build = make([]Constructors, 0)
+				engine.build = make([]web.Constructor, 0)
 			}
 			engine.build = append(engine.build, constructors)
 		}
@@ -67,9 +67,9 @@ func useServe(server interface{}) UseOption {
 // useComponent 添加到容器
 func useComponent(component interface{}) UseOption {
 	return func(engine *Engine) {
-		if c, b := component.(Component); b {
+		if c, b := component.(web.Component); b {
 			if engine.components == nil {
-				engine.components = make([]Component, 0)
+				engine.components = make([]web.Component, 0)
 				engine.components = append(engine.components, c)
 				return
 			}

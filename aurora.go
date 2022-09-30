@@ -19,10 +19,12 @@ import (
 	"strings"
 	"sync"
 )
+
 const (
 	yml  = "application.yml"
 	yaml = "application.yaml"
 )
+
 var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.1)           |"
 
 type Engine struct {
@@ -66,16 +68,13 @@ type Engine struct {
 	options []UseOption
 
 	// 命名组件
-	components []Component
+	components []web.Component
 
 	// 匿名组件
-	build []Constructors
+	build []web.Constructor
 
 	// 第三方组件管理容器
 	space *container.Space
-
-	// 加载结构体作为处理器, 处理器并不会被注册到缓存容器中，处理器在启动期间会根据需要去缓存容器中寻找对应的依赖
-	controllers []*reflect.Value
 
 	// 配置实例，读取配置文件
 	config web.Config
@@ -99,15 +98,14 @@ func New(option ...Option) *Engine {
 	for _, opt := range option {
 		opt(engine)
 	}
-
 	var middleware web.Middleware
-	var constructors Constructors
+	var constructors web.Constructor
 	// 中间件配置项
 	engine.use[reflect.TypeOf(middleware)] = useMiddleware
 	// 匿名组件
 	engine.use[reflect.TypeOf(constructors)] = useConstructors
 	// 命名组件
-	engine.use[reflect.TypeOf(Component{})] = useComponent
+	engine.use[reflect.TypeOf(web.Component{})] = useComponent
 	// log 日志
 	engine.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
 	// server
@@ -154,7 +152,7 @@ func NewRoute(engine *Engine) *route.Router {
 }
 
 // Use 使用组件,把组件加载成为对应的配置
-func (engine *Engine) Use(Configuration ...interface{}) {
+func (engine *Engine) Use(Configuration ...any) {
 	if Configuration == nil {
 		return
 	}
@@ -177,6 +175,25 @@ func (engine *Engine) Use(Configuration ...interface{}) {
 		}
 		opt = useControl(u)
 		engine.options = append(engine.options, opt)
+	}
+}
+
+// GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
+func (engine *Engine) GetConfig() web.Config {
+	return engine.config
+}
+
+func (engine *Engine) Root() string {
+	return engine.projectRoot
+}
+
+func ErrorMsg(err error, msg ...string) {
+	if err != nil {
+		if msg == nil {
+			msg = []string{"Error"}
+		}
+		emsg := fmt.Errorf("%s : %s", strings.Join(msg, ""), err.Error())
+		panic(emsg)
 	}
 }
 
@@ -205,6 +222,71 @@ func (engine *Engine) run() error {
 		return engine.server.ServeTLS(l, certFile, keyFile)
 	}
 	return engine.server.Serve(l)
+}
+
+// StartIoc 启动容器
+func (engine *Engine) ioc() {
+	engine.Info("start component-dependent assembly")
+
+	//加载uses配置项，配置项中可能存在加载ioc配置
+	if engine.options != nil {
+		for _, useOption := range engine.options {
+			useOption(engine)
+		}
+	}
+	// 加载 构造器 build 到 ioc 容器
+	if engine.build != nil {
+		for _, constructor := range engine.build {
+			// 执行构造 生成组件放入到 ioc中
+			c := constructor()
+			err := engine.space.Put("", c)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	if engine.components != nil {
+		for _, component := range engine.components {
+			for k, v := range component {
+				if err := engine.space.Put(k, v); err != nil {
+					ErrorMsg(err)
+				}
+			}
+		}
+	}
+	// 清空
+	engine.components = nil
+	//启动容器 ,给容器中的组件进行依赖初始化,容器加载出错 结束运行
+	err := engine.space.Start()
+	ErrorMsg(err, "Container initialization failed")
+	engine.injection()
+}
+
+// injection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
+func (engine *Engine) injection() {
+
+	// 获取容器中的主缓存
+	Controllers := engine.space.Cache()
+	for _, c := range Controllers {
+		control := *c
+		if control.Kind() == reflect.Ptr {
+			control = control.Elem()
+		}
+		for j := 0; j < control.NumField(); j++ {
+			field := control.Type().Field(j)
+			//查询 value 属性 读取config中的基本属性
+			if v, b := field.Tag.Lookup("value"); b && v != "" {
+				get := engine.config.Get(v)
+				if get == nil {
+					//如果查找结果大小等于0 则表示不存在
+					continue
+				}
+				//把查询到的 value 初始化给指定字段
+				err := core.StarAssignment(control.Field(j), get)
+				ErrorMsg(err)
+			}
+		}
+	}
 }
 
 // viperConfig 配置并加载 application.yml 配置文件
@@ -241,7 +323,7 @@ func (engine *Engine) viperConfig() {
 		engine.config = cnf
 	}
 	// 加载基础配置
-	if engine.config != nil {                      //是否加载配置文件 覆盖配置项
+	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		engine.Info("the configuration file is loaded successfully.")
 		// 读取web服务端口号配置
 		port := engine.config.GetString("aurora.server.port")
@@ -274,26 +356,6 @@ func (engine *Engine) viperConfig() {
 	}
 }
 
-// GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
-func (engine *Engine) GetConfig() web.Config {
-	return engine.config
-}
-
-
 func (engine *Engine) printBanner() {
 	fmt.Printf("%s\n\r", banner)
-}
-
-func (engine *Engine) Root() string {
-	return engine.projectRoot
-}
-
-func ErrorMsg(err error, msg ...string) {
-	if err != nil {
-		if msg == nil {
-			msg = []string{"Error"}
-		}
-		emsg := fmt.Errorf("%s : %s", strings.Join(msg, ""), err.Error())
-		panic(emsg)
-	}
 }
