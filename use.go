@@ -6,12 +6,12 @@ import (
 )
 
 // UseOption 配置项 对 *Aurora 的指定属性进行 配置
-type UseOption func(engine *Engine)
+type useOption func(engine *Engine)
 
-type UseConfiguration func(interface{}) UseOption
+type useConfiguration func(interface{}) useOption
 
 // useController Use的 处理器注册
-func useConstructors(control interface{}) UseOption {
+func useConstructors(control any) useOption {
 	return func(engine *Engine) {
 		if constructors, b := control.(web.Constructor); b {
 			if engine.build == nil {
@@ -23,7 +23,7 @@ func useConstructors(control interface{}) UseOption {
 }
 
 // useControl
-func useControl(control interface{}) UseOption {
+func useControl(control any) useOption {
 	return func(a *Engine) {
 		err := a.space.Put("", control)
 		if err != nil {
@@ -33,7 +33,7 @@ func useControl(control interface{}) UseOption {
 }
 
 // useMiddleware Use 的中间件注册
-func useMiddleware(middleware interface{}) UseOption {
+func useMiddleware(middleware any) useOption {
 	return func(engine *Engine) {
 		if m, b := middleware.(web.Middleware); !b {
 			return
@@ -43,14 +43,14 @@ func useMiddleware(middleware interface{}) UseOption {
 	}
 }
 
-func useLogrus(log interface{}) UseOption {
+func useLogrus(log any) useOption {
 	return func(engine *Engine) {
 		engine.Log = log.(web.Log)
 	}
 }
 
 // useServe 使用自定义的 serve 实例
-func useServe(server interface{}) UseOption {
+func useServe(server any) useOption {
 	return func(engine *Engine) {
 		if server == nil {
 			return
@@ -65,7 +65,7 @@ func useServe(server interface{}) UseOption {
 }
 
 // useComponent 添加到容器
-func useComponent(component interface{}) UseOption {
+func useComponent(component any) useOption {
 	return func(engine *Engine) {
 		if c, b := component.(web.Component); b {
 			if engine.components == nil {
@@ -79,7 +79,7 @@ func useComponent(component interface{}) UseOption {
 }
 
 // useConfig 使用自定义viper配置
-func useConfig(component interface{}) UseOption {
+func useConfig(component any) useOption {
 	return func(engine *Engine) {
 		if component == nil {
 			return

@@ -62,10 +62,10 @@ type Engine struct {
 	opt []Option
 
 	// 各类配置项的存储，在初始化阶段预存了内置的配置项获取,可以通过api多这个配置项镜像添加或覆盖
-	use map[interface{}]UseConfiguration
+	use map[interface{}]useConfiguration
 
 	// 最后初始化需要加载的配置项
-	options []UseOption
+	options []useOption
 
 	// 命名组件
 	components []web.Component
@@ -114,12 +114,17 @@ func New(option ...Option) *Engine {
 }
 
 // NewEngine 创建 Engine 基础配置
+// 初始化默认端口号
+// 创建 http 服务
+// 初始化默认日志
+// 初始化系统参数列表
+// 加载配置文件
 func NewEngine() *Engine {
 	engine := &Engine{
 		port:     "8080", //默认端口号
 		server:   &http.Server{},
 		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
-		use:      make(map[interface{}]UseConfiguration),
+		use:      make(map[interface{}]useConfiguration),
 	}
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
@@ -157,9 +162,9 @@ func (engine *Engine) Use(Configuration ...any) {
 		return
 	}
 	if engine.options == nil {
-		engine.options = make([]UseOption, 0)
+		engine.options = make([]useOption, 0)
 	}
-	var opt UseOption
+	var opt useOption
 	for _, u := range Configuration {
 		rt := reflect.TypeOf(u)
 		if useOption, b := engine.use[rt]; b {
@@ -187,6 +192,14 @@ func (engine *Engine) Root() string {
 	return engine.projectRoot
 }
 
+// ViewHandle 修改默认视图解析接口
+// Aurora 的路由树初始化默认使用的 Aurora 自己实现的视图解析
+// 通过 该方法可以重新设置视图解析的逻辑处理，或者使用其他第三方的视图处理
+// 现在的试图处理器处理方式比较局限，后续根据开发者需求进一步调整
+func (engine *Engine) ViewHandle(v web.ViewHandle) {
+	engine.router.DefaultView = v
+}
+
 func ErrorMsg(err error, msg ...string) {
 	if err != nil {
 		if msg == nil {
@@ -200,7 +213,7 @@ func ErrorMsg(err error, msg ...string) {
 // Run 启动服务器
 func (engine *Engine) run() error {
 	engine.server.BaseContext = engine.baseContext //配置 上下文对象属性
-	engine.router.DefaultView = engine.View        //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
+	engine.router.DefaultView = web.View           //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
 	engine.server.Handler = engine.router          //设置默认路由器
 	engine.router.LoadCache()                      //加载接口
 	var p, certFile, keyFile string
@@ -358,4 +371,14 @@ func (engine *Engine) viperConfig() {
 
 func (engine *Engine) printBanner() {
 	fmt.Printf("%s\n\r", banner)
+}
+
+// baseContext 初始化 Aurora 顶级上下文
+func (engine *Engine) baseContext(ln net.Listener) context.Context {
+	c, f := context.WithCancel(context.TODO())
+	//此处的保存在后续使用可能产生bug，情况未知
+	engine.ctx = c
+	engine.cancel = f
+	engine.Info(fmt.Sprintf("the server successfully binds to the port:%s", engine.port))
+	return c
 }

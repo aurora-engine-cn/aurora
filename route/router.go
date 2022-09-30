@@ -72,46 +72,45 @@ const (
 type Router struct {
 	web.Log
 	MaxMultipartMemory int64
-	Root               string                   // 项目更目录
-	Resource           string                   // 静态资源管理 默认为 root 目录
-	FileService        string                   // 文件服务配置
-	ProxyPool          *sync.Pool               // 创建执行实例
-	PathPool           *sync.Pool               // 分配路径构建
-	Catches            map[reflect.Type]Catch   // 全局错误捕捉处理
+	Root               string                       // 项目更目录
+	Resource           string                       // 静态资源管理 默认为 root 目录
+	FileService        string                       // 文件服务配置
+	ProxyPool          *sync.Pool                   // 创建执行实例
+	PathPool           *sync.Pool                   // 分配路径构建
+	Catches            map[reflect.Type]Catch       // 全局错误捕捉处理
 	Api                map[string][]web.ControlInfo // 接口信息
 	Middlewares        []web.Middleware             // 全局中间件
-	Controllers        []*reflect.Value         // 存储结构体全局控制器
-	DefaultView        ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	Intrinsic          map[string]web.System   // 自定义系统参 初始化来自 Engine
-	config             web.Config               // 配置实例，读取配置文件
-	Tree               map[string]*node         // 路由树根节点
-	Mux                *sync.Mutex              // 注册路由并发锁
+	Controllers        []*reflect.Value             // 存储结构体全局控制器
+	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	Intrinsic          map[string]web.System        // 自定义系统参 初始化来自 Engine
+	config             web.Config                   // 配置实例，读取配置文件
+	Tree               map[string]*node             // 路由树根节点
+	Mux                *sync.Mutex                  // 注册路由并发锁
 }
 
 // node 路由节点
 type node struct {
-	Path       string       //当前节点路径
-	FullPath   string       //当前处理器全路径
-	Count      int          //路径数量
+	Path       string           //当前节点路径
+	FullPath   string           //当前处理器全路径
+	Count      int              //路径数量
 	middleware []web.Middleware //中间处理函数
-	Control    *Controller  //服务处理函数
-	Child      []*node      //子节点
+	Control    *Controller      //服务处理函数
+	Child      []*node          //子节点
 }
 
 func New() *Router {
-	router:=new(Router)
-	router.ProxyPool=&sync.Pool{
-		New: func() any{
+	router := new(Router)
+	router.ProxyPool = &sync.Pool{
+		New: func() any {
 			return &Proxy{}
 		},
 	}
-	router.PathPool=&sync.Pool{
-		New: func() any{
+	router.PathPool = &sync.Pool{
+		New: func() any {
 			return &bytes.Buffer{}
 		},
 	}
-	router.Mux=&sync.Mutex{}
-
+	router.Mux = &sync.Mutex{}
 
 	return router
 }
@@ -131,7 +130,6 @@ func (router *Router) Use(middleware ...web.Middleware) {
 		router.Middlewares = append(router.Middlewares, middleware[i])
 	}
 }
-
 
 func (router *Router) Catch(err any) {
 	router.registerErrorCatch(err)
@@ -162,7 +160,6 @@ func (router *Router) LoadCache() {
 		router.Api = nil
 	}
 }
-
 
 // ——————————————————————————————————————————————————————————————————————————路由注册————————————————————————————————————————————————————————————————————————————————————————————
 
@@ -561,7 +558,6 @@ star:
 	}
 	return nil, nil, nil
 }
-
 
 // ServeHTTP 一切的开始
 func (router *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

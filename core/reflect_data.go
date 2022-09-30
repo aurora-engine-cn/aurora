@@ -57,6 +57,7 @@ func TypeKey(t any) string {
 	return baseType
 }
 
+// BaseTypeKey 通过 BaseTypeKey 得到的变量默认全包名对泛型参数进行特殊处理的，不会加上类型中的 [xxx]定义部分信息
 func BaseTypeKey(v reflect.Value) string {
 	baseType := ""
 	if v.Kind() == reflect.Ptr {

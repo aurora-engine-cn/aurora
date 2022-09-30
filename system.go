@@ -6,6 +6,7 @@ import (
 	"reflect"
 )
 
+// SysVariable 当前系统参数不支持泛型参数
 func (engine *Engine) SysVariable(v interface{}, value web.System) {
 	if v == nil || value == nil {
 		return
@@ -18,8 +19,7 @@ func (engine *Engine) SysVariable(v interface{}, value web.System) {
 	engine.intrinsic[key] = value
 }
 
-// 系统变量
-
+// Aurora 系统变量
 func req(ctx web.Context) interface{} {
 	return ctx.Request()
 }
