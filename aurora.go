@@ -62,7 +62,7 @@ type Engine struct {
 	opt []Option
 
 	// 各类配置项的存储，在初始化阶段预存了内置的配置项获取,可以通过api多这个配置项镜像添加或覆盖
-	use map[interface{}]useConfiguration
+	use map[string]useConfiguration
 
 	// 最后初始化需要加载的配置项
 	options []useOption
@@ -98,18 +98,24 @@ func New(option ...Option) *Engine {
 	for _, opt := range option {
 		opt(engine)
 	}
+	key := ""
 	var middleware web.Middleware
 	var constructors web.Constructor
 	// 中间件配置项
-	engine.use[reflect.TypeOf(middleware)] = useMiddleware
+	key = core.TypeKey(middleware)
+	engine.use[key] = useMiddleware
 	// 匿名组件
-	engine.use[reflect.TypeOf(constructors)] = useConstructors
+	key = core.TypeKey(constructors)
+	engine.use[key] = useConstructors
 	// 命名组件
-	engine.use[reflect.TypeOf(web.Component{})] = useComponent
+	key = core.TypeKey(web.Component{})
+	engine.use[key] = useComponent
 	// log 日志
-	engine.use[reflect.TypeOf(&logrus.Logger{})] = useLogrus
+	key = core.TypeKey(&logrus.Logger{})
+	engine.use[key] = useLogrus
 	// server
-	engine.use[reflect.TypeOf(&http.Server{})] = useServe
+	key = core.TypeKey(&http.Server{})
+	engine.use[key] = useServe
 	return engine
 }
 
@@ -124,7 +130,7 @@ func NewEngine() *Engine {
 		port:     "8080", //默认端口号
 		server:   &http.Server{},
 		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
-		use:      make(map[interface{}]useConfiguration),
+		use:      make(map[string]useConfiguration),
 	}
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
@@ -166,18 +172,18 @@ func (engine *Engine) Use(Configuration ...any) {
 	}
 	var opt useOption
 	for _, u := range Configuration {
-		rt := reflect.TypeOf(u)
-		if useOption, b := engine.use[rt]; b {
+		key := core.TypeKey(u)
+		if useOption, b := engine.use[key]; b {
 			opt = useOption(u)
 			engine.options = append(engine.options, opt)
 			continue
 		}
-		//检查是否是实现 Config配置接口
-		if rt.Implements(reflect.TypeOf(new(web.Config)).Elem()) {
-			opt = useConfig(u)
-			engine.options = append(engine.options, opt)
-			continue
-		}
+		////检查是否是实现 Config配置接口
+		//if rt.Implements(reflect.TypeOf(new(web.Config)).Elem()) {
+		//	opt = useConfig(u)
+		//	engine.options = append(engine.options, opt)
+		//	continue
+		//}
 		opt = useControl(u)
 		engine.options = append(engine.options, opt)
 	}
@@ -241,13 +247,13 @@ func (engine *Engine) run() error {
 func (engine *Engine) ioc() {
 	engine.Info("start component-dependent assembly")
 
-	//加载uses配置项，配置项中可能存在加载ioc配置
+	//加载uses配置项
 	if engine.options != nil {
 		for _, useOption := range engine.options {
 			useOption(engine)
 		}
 	}
-	// 加载 构造器 build 到 ioc 容器
+	// 加载 构造器 build 到 容器
 	if engine.build != nil {
 		for _, constructor := range engine.build {
 			// 执行构造 生成组件放入到 ioc中
