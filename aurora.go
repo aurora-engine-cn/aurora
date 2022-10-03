@@ -61,7 +61,7 @@ type Engine struct {
 	//Aurora 配置启动配置项
 	opt []Option
 
-	// 各类配置项的存储，在初始化阶段预存了内置的配置项获取,可以通过api多这个配置项镜像添加或覆盖
+	// 各类配置项的存储，在初始化阶段预存了内置的配置项获取,可以通过api多这个配置项镜像添加或覆盖，use的配置项不支持泛型
 	use map[string]useConfiguration
 
 	// 最后初始化需要加载的配置项
@@ -91,31 +91,10 @@ type Engine struct {
 func New(option ...Option) *Engine {
 	engine := NewEngine()
 	engine.router = NewRoute(engine)
-	// 加载 consul 配置
-	engine.consul()
-
 	// 执行配置项
 	for _, opt := range option {
 		opt(engine)
 	}
-	key := ""
-	var middleware web.Middleware
-	var constructors web.Constructor
-	// 中间件配置项
-	key = core.TypeKey(middleware)
-	engine.use[key] = useMiddleware
-	// 匿名组件
-	key = core.TypeKey(constructors)
-	engine.use[key] = useConstructors
-	// 命名组件
-	key = core.TypeKey(web.Component{})
-	engine.use[key] = useComponent
-	// log 日志
-	key = core.TypeKey(&logrus.Logger{})
-	engine.use[key] = useLogrus
-	// server
-	key = core.TypeKey(&http.Server{})
-	engine.use[key] = useServe
 	return engine
 }
 
@@ -141,6 +120,27 @@ func NewEngine() *Engine {
 	engine.Log = logs //初始化日志
 	engine.printBanner()
 	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
+
+	// 初始化 Use 配置
+	key := ""
+	var middleware web.Middleware
+	var constructors web.Constructor
+	// 中间件配置项
+	key = core.TypeKey(middleware)
+	engine.use[key] = useMiddleware
+	// 匿名组件
+	key = core.TypeKey(constructors)
+	engine.use[key] = useConstructors
+	// 命名组件
+	key = core.TypeKey(web.Component{})
+	engine.use[key] = useComponent
+	// log 日志
+	key = core.TypeKey(&logrus.Logger{})
+	engine.use[key] = useLogrus
+	// server
+	key = core.TypeKey(&http.Server{})
+	engine.use[key] = useServe
+
 	// 初始化系统参数
 	if engine.intrinsic == nil {
 		engine.intrinsic = make(map[string]web.System)
@@ -154,6 +154,7 @@ func NewEngine() *Engine {
 	return engine
 }
 
+// NewRoute 创建并初始化 Router
 func NewRoute(engine *Engine) *route.Router {
 	router := route.New()
 	router.MaxMultipartMemory = engine.MaxMultipartMemory
@@ -178,12 +179,6 @@ func (engine *Engine) Use(Configuration ...any) {
 			engine.options = append(engine.options, opt)
 			continue
 		}
-		////检查是否是实现 Config配置接口
-		//if rt.Implements(reflect.TypeOf(new(web.Config)).Elem()) {
-		//	opt = useConfig(u)
-		//	engine.options = append(engine.options, opt)
-		//	continue
-		//}
 		opt = useControl(u)
 		engine.options = append(engine.options, opt)
 	}
