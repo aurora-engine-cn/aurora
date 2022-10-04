@@ -15,10 +15,11 @@ type Application interface {
 
 	// run 和 ioc 方法通过嵌套(继承 Aurora实例)
 	run() error
-	// ioc 启动ioc 函数 该函数由 Aurora 实现
+	// ioc 容器启动 函数 该函数由 Aurora 实现
 	ioc()
 }
 
+// Run 启动服务器，启动阶段自动注册当前服务实例
 func Run(app Application) error {
 	// 注册当前服务
 	app.Use(app)

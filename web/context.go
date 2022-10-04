@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	AuroraMultipartFile         = "AuroraMultipartFile"
-	AuroraRequest                  = "AuroraRequest"  //go 原生请求
-	AuroraResponse                 = "AuroraResponse" //go 原生响应
+	AuroraMultipartFile = "AuroraMultipartFile" //文件解析
+	AuroraRequest       = "AuroraRequest"       //go 原生请求
+	AuroraResponse      = "AuroraResponse"      //go 原生响应
+	AuroraValues        = "AuroraValues"
 )
 
 // Context 上下文参数，主要用于在业务之间传递 数据使用
@@ -32,8 +33,9 @@ func (ctx Context) Response() http.ResponseWriter {
 	return ctx[AuroraResponse].(http.ResponseWriter)
 }
 
+// MultipartFile 获取POST文件上传
 func (ctx Context) MultipartFile() *MultipartFile {
-	if file,b:=ctx[AuroraMultipartFile];b{
+	if file, b := ctx[AuroraMultipartFile]; b {
 		return file.(*MultipartFile)
 	}
 	return nil
@@ -45,5 +47,5 @@ func (ctx Context) Return(value ...interface{}) {
 	for _, v := range value {
 		values = append(values, reflect.ValueOf(v))
 	}
-	ctx["AuroraValues"] = values
+	ctx[AuroraValues] = values
 }
