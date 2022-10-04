@@ -1,4 +1,5 @@
 package container
+
 // container.go 用于重构 ioc.go
 // 从 go1.19 版本开始 container.go 只接受指针变量放入容器
 
@@ -7,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 )
+
 func NewSpace() *Space {
 	return &Space{
 		initializeCache: make(map[string]any),
@@ -119,7 +121,9 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				_, is := space.firstCache[depKey]
 				if is {
 					// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
-					return errors.New(Key + " Reference instance not found")
+					msg := fmt.Sprintf("%s-%s %s Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldType.Name)
+					//errors.New(Key + " Reference instance not found")
+					return errors.New(msg)
 				}
 				space.firstCache[depKey] = &value
 				// 存储完成后 删除原来 kv中的该实例 ,以防下次重复

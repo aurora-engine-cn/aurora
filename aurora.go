@@ -145,10 +145,14 @@ func NewEngine() *Engine {
 	if engine.intrinsic == nil {
 		engine.intrinsic = make(map[string]web.System)
 	}
-	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(http.Request)))] = req
-	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())] = rew
-	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(web.Context)))] = ctx
-	engine.intrinsic[core.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))] = file
+	key = core.BaseTypeKey(reflect.ValueOf(new(http.Request)))
+	engine.intrinsic[key] = req
+	key = core.BaseTypeKey(reflect.ValueOf(new(http.ResponseWriter)).Elem())
+	engine.intrinsic[key] = rew
+	key = core.BaseTypeKey(reflect.ValueOf(new(web.Context)))
+	engine.intrinsic[key] = ctx
+	key = core.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))
+	engine.intrinsic[key] = file
 	// 加载配置文件
 	engine.viperConfig()
 	return engine
