@@ -6,14 +6,14 @@ import (
 	"reflect"
 )
 
-// SysVariable 当前系统参数不支持泛型参数
-func (engine *Engine) SysVariable(v interface{}, value web.System) {
+// Variate 当前系统参数不支持泛型参数
+func (engine *Engine) Variate(v interface{}, value web.Variate) {
 	if v == nil || value == nil {
 		return
 	}
 	rt := reflect.ValueOf(v)
 	if engine.intrinsic == nil {
-		engine.intrinsic = make(map[string]web.System)
+		engine.intrinsic = make(map[string]web.Variate)
 	}
 	key := core.BaseTypeKey(rt)
 	engine.intrinsic[key] = value

@@ -56,7 +56,7 @@ type Engine struct {
 	fileService string
 
 	// 自定义系统参数
-	intrinsic map[string]web.System
+	intrinsic map[string]web.Variate
 
 	//Aurora 配置启动配置项
 	opt []Option
@@ -114,6 +114,7 @@ func NewEngine() *Engine {
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
 	engine.space = container.NewSpace() //初始化容器
+	engine.space.Put("", engine)
 	logs := logrus.New()
 	logs.SetFormatter(&web.Formatter{})
 	logs.Out = os.Stdout
@@ -143,7 +144,7 @@ func NewEngine() *Engine {
 
 	// 初始化系统参数
 	if engine.intrinsic == nil {
-		engine.intrinsic = make(map[string]web.System)
+		engine.intrinsic = make(map[string]web.Variate)
 	}
 	key = core.BaseTypeKey(reflect.ValueOf(new(http.Request)))
 	engine.intrinsic[key] = req

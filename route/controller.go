@@ -25,7 +25,7 @@ import (
 
 type Controller struct {
 	*Proxy
-	Context      web.Context                    //上下文数据
+	Context         web.Context            //上下文数据
 	UrlVariable     []string               //路径参数,按顺序依次
 	RESTFul         map[string]interface{} // K/V 路径参数
 	InNum           int                    //处理器入参参数个数
@@ -36,7 +36,7 @@ type Controller struct {
 	ReturnValues    []reflect.Value        //返回参数实例
 	Fun             reflect.Value          //将被调用的函数,注册阶段已经被构建成为反射类型
 	FunType         reflect.Type
-	Intrinsic       map[string]web.System // 自定赋值参数列表(系统参数配置)
+	Intrinsic       map[string]web.Variate // 自定赋值参数列表(系统参数配置)
 }
 
 // InitArgs 初始化参数信息，注册函数阶段调用
@@ -234,8 +234,6 @@ func postRequest(request *http.Request, control *Controller) []string {
 	}
 	return values
 }
-
-
 
 // 检查结构体参数中的约束是否满足对应检查
 func (control *Controller) checkConstrain() error {

@@ -82,7 +82,7 @@ type Router struct {
 	Middlewares        []web.Middleware             // 全局中间件
 	Controllers        []*reflect.Value             // 存储结构体全局控制器
 	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	Intrinsic          map[string]web.System        // 自定义系统参 初始化来自 Engine
+	Intrinsic          map[string]web.Variate       // 自定义系统参 初始化来自 Engine
 	config             web.Config                   // 配置实例，读取配置文件
 	Tree               map[string]*node             // 路由树根节点
 	Mux                *sync.Mutex                  // 注册路由并发锁
