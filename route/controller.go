@@ -2,7 +2,7 @@ package route
 
 import (
 	"fmt"
-	"gitee.com/aurora-engine/aurora/utils"
+	"gitee.com/aurora-engine/aurora/core"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
@@ -25,7 +25,7 @@ import (
 
 type Controller struct {
 	*Proxy
-	Context      web.Context                    //上下文数据
+	Context         web.Context            //上下文数据
 	UrlVariable     []string               //路径参数,按顺序依次
 	RESTFul         map[string]interface{} // K/V 路径参数
 	InNum           int                    //处理器入参参数个数
@@ -36,7 +36,7 @@ type Controller struct {
 	ReturnValues    []reflect.Value        //返回参数实例
 	Fun             reflect.Value          //将被调用的函数,注册阶段已经被构建成为反射类型
 	FunType         reflect.Type
-	Intrinsic       map[string]Constructor // 自定赋值参数列表(系统参数配置)
+	Intrinsic       map[string]web.Variate // 自定赋值参数列表(系统参数配置)
 }
 
 // InitArgs 初始化参数信息，注册函数阶段调用
@@ -55,7 +55,7 @@ func (control *Controller) InitArgs() {
 		arguments := control.FunType.In(i)
 		value := reflect.New(arguments).Elem()
 		//初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
-		key := utils.BaseTypeKey(value)
+		key := core.BaseTypeKey(value)
 		if _, b := control.Intrinsic[key]; b {
 			control.Args[i] = key
 			control.InvokeValues[i] = value
@@ -131,7 +131,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 		var data interface{}
 		var err error
 		if vr, b := control.Intrinsic[v]; b {
-			prama := vr(control.Proxy)
+			prama := vr(control.Context)
 			pv := reflect.ValueOf(prama)
 			if !pv.Type().AssignableTo(control.InvokeValues[i].Type()) {
 				panic("The required type is'" + control.InvokeValues[i].Type().String() + "' The provided type is '" + pv.Type().String() + "'" +
@@ -172,7 +172,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 				data = v
 			}
 		}
-		err = utils.StarAssignment(control.InvokeValues[i], data)
+		err = core.StarAssignment(control.InvokeValues[i], data)
 		ErrorMsg(err)
 	}
 
@@ -207,7 +207,7 @@ func postRequest(request *http.Request, control *Controller) []string {
 	if form != nil {
 		if form.File != nil {
 			//封装解析好的 文件部分
-			control.File = &web.MultipartFile{File: form.File}
+			control.Context[web.AuroraMultipartFile] = &web.MultipartFile{File: form.File}
 		}
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式
@@ -234,8 +234,6 @@ func postRequest(request *http.Request, control *Controller) []string {
 	}
 	return values
 }
-
-
 
 // 检查结构体参数中的约束是否满足对应检查
 func (control *Controller) checkConstrain() error {

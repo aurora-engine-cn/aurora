@@ -1,12 +1,14 @@
 package aurora
 
 import (
+	"gitee.com/aurora-engine/aurora/web"
 	"github.com/sirupsen/logrus"
 	"reflect"
 )
 
 /*
-	Aurora 配置项大全
+	Aurora 配置项大全，New 启动阶段加载
+	Use 阶段加载的配置会覆盖
 */
 
 type Option func(*Engine)
@@ -15,6 +17,12 @@ type Option func(*Engine)
 func ConfigFile(configPath string) Option {
 	return func(a *Engine) {
 		a.configpath = configPath
+	}
+}
+
+func Config(config web.Config) Option {
+	return func(engine *Engine) {
+		engine.config = config
 	}
 }
 

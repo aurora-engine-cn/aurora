@@ -1,12 +1,15 @@
 package container
+
 // container.go 用于重构 ioc.go
 // 从 go1.19 版本开始 container.go 只接受指针变量放入容器
+// 之前版本的容器对匿名的依赖装配做了一个有则装配，没有也不会最做出错误提示，现在版本的不区分匿名和具名，只要没有找到可装配依赖就提示容器初始化失败(后续可能优化)
 
 import (
 	"errors"
 	"fmt"
 	"reflect"
 )
+
 func NewSpace() *Space {
 	return &Space{
 		initializeCache: make(map[string]any),
@@ -112,14 +115,14 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 			// 主容器中没有找到 tag 引用，尝试在 一缓存容器中查找
 			v, find := space.firstCache[Key]
 			if !find {
-				// 一级缓存容器 也无法查询到
-				// 此刻需要 把当前正在初始化的实例放到第一级缓存容器中 表示当前的实例已经存在，然后去初始化未找到的引用
+				// 一级缓存容器也无法查询到
+				// 此刻需要把当前正在初始化的实例放到第一级缓存容器中表示当前的实例已经存在，然后去初始化未找到的引用(此处去初始化未找到的索引并不是直接去，而是通过下面的操作重新运行一次启动容器)
 				// 存放到一级缓存 之前需要判定当前初始化的实例是否已经在第一缓存中,这里判断的目的主要是校验完成初级缓存加载后
 				// 继续进行第二次缓存加载依然无法找到指定的 tag 引用，这个情况下找不到的引用只可能是不存在于容器中，在第二次缓存加载走到这里就是错误的
 				_, is := space.firstCache[depKey]
 				if is {
 					// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
-					return errors.New(Key + " Reference instance not found")
+					return fmt.Errorf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
 				}
 				space.firstCache[depKey] = &value
 				// 存储完成后 删除原来 kv中的该实例 ,以防下次重复

@@ -33,16 +33,6 @@ func (engine *Engine) Head(url string, control any, middleware ...web.Middleware
 
 // register 通用注册器
 func (engine *Engine) register(method string, url string, control any, middleware ...web.Middleware) {
-	//if engine.api == nil {
-	//	engine.api = make(map[string][]controlInfo)
-	//}
-	//api := controlInfo{path: url, control: control, middleware: middleware}
-	//if _, b := engine.api[method]; !b {
-	//	engine.api[method] = make([]controlInfo, 0)
-	//	engine.api[method] = append(engine.api[method], api)
-	//} else {
-	//	engine.api[method] = append(engine.api[method], api)
-	//}
 	engine.router.Cache(method, url, control, middleware...)
 }
 

@@ -17,9 +17,9 @@ type Proxy struct {
 	errType     reflect.Type
 	Rew         http.ResponseWriter    // http 响应体
 	Req         *http.Request          // http 请求体
-	Middleware  []web.Middleware           // 当前控制器待执行中间件
-	Context     web.Context                    // 请求上下文数据
-	File        *web.MultipartFile         // Post文件上传解析值
+	Middleware  []web.Middleware       // 当前控制器待执行中间件
+	Context     web.Context            // 请求上下文数据
+	File        *web.MultipartFile     // Post文件上传解析值
 	Control     Controller             // 待处理执行器
 	values      []reflect.Value        // 处理器返回值
 	UrlVariable []string               // REST API 顺序值

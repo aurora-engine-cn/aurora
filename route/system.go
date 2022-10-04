@@ -16,7 +16,7 @@ type Constructor func(*Proxy) interface{}
 
 // 系统变量
 
-func req(proxy *Proxy) interface{} {
+func SysRequest(proxy *Proxy) interface{} {
 	return proxy.Req
 }
 
