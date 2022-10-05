@@ -5,7 +5,7 @@ import (
 	"gitee.com/aurora-engine/aurora/core"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -25,16 +25,16 @@ import (
 
 type Controller struct {
 	*Proxy
-	Context         web.Context            //上下文数据
-	UrlVariable     []string               //路径参数,按顺序依次
-	RESTFul         map[string]interface{} // K/V 路径参数
-	InNum           int                    //处理器入参参数个数
-	OutNum          int                    //处理器返回值个数
-	InvokeValues    []reflect.Value        // InvokeValues存储的是控制器传递参数的序列 按顺序存储每个入参的反射实例
-	Args            []string               //参数赋值序列表，主要存储请求参数的只值
-	AssignmentIndex []int                  //AssignmentIndex 可赋值参数索引序列，可赋值参数序列是存储了系统内部参数之外的请求参数所在 InvokeValues 参数序列中的索引位置。
-	ReturnValues    []reflect.Value        //返回参数实例
-	Fun             reflect.Value          //将被调用的函数,注册阶段已经被构建成为反射类型
+	Context         web.Context     //上下文数据
+	UrlVariable     []string        //路径参数,按顺序依次
+	RESTFul         map[string]any  // K/V 路径参数 控制器解析中，请求参数参数名尽量不要和 RESTFul 参数同名，否则会覆盖
+	InNum           int             //处理器入参参数个数
+	OutNum          int             //处理器返回值个数
+	InvokeValues    []reflect.Value // InvokeValues存储的是控制器传递参数的序列 按顺序存储每个入参的反射实例
+	Args            []string        //参数赋值序列表，主要存储请求参数的只值
+	AssignmentIndex []int           //AssignmentIndex 可赋值参数索引序列，可赋值参数序列是存储了系统内部参数之外的请求参数所在 InvokeValues 参数序列中的索引位置。
+	ReturnValues    []reflect.Value //返回参数实例
+	Fun             reflect.Value   //将被调用的函数,注册阶段已经被构建成为反射类型
 	FunType         reflect.Type
 	Intrinsic       map[string]web.Variate // 自定赋值参数列表(系统参数配置)
 }
@@ -88,11 +88,11 @@ func (control *Controller) analysisInput(request *http.Request) {
 	//根据 请求类型初始化 values 列表
 	switch request.Method {
 	case http.MethodGet:
-		values = getRequest(request, control)
+		values = GetRequest(request, control)
 	case http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodHead:
-		values = getRequest(request, control)
-		post := postRequest(request, control)
-		values = append(values, post...)
+		values = GetRequest(request, control)
+		postValue := PostRequest(request, control)
+		values = append(values, postValue...)
 	}
 	if values == nil {
 		//如果 values 在前面的请求类型中均未被初始化，则初始化 values为空零元素切片,以防下面出现空指针错误
@@ -117,8 +117,8 @@ func (control *Controller) analysisInput(request *http.Request) {
 		} else {
 			v = values[i]
 		}
-		assig := control.AssignmentIndex[i]
-		control.Args[assig] = v
+		assign := control.AssignmentIndex[i]
+		control.Args[assign] = v
 	}
 
 	//开始初始化参数注入，Args中的参数没有被初始化 依然为 "" 空字符串，则在初始化的时候默认为 零值
@@ -127,21 +127,20 @@ func (control *Controller) analysisInput(request *http.Request) {
 		if v == "" {
 			continue
 		}
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		var data interface{}
 		var err error
 		if vr, b := control.Intrinsic[v]; b {
-			prama := vr(control.Context)
-			pv := reflect.ValueOf(prama)
+			parameter := vr(control.Context)
+			pv := reflect.ValueOf(parameter)
 			if !pv.Type().AssignableTo(control.InvokeValues[i].Type()) {
 				panic("The required type is'" + control.InvokeValues[i].Type().String() + "' The provided type is '" + pv.Type().String() + "'" +
 					",Custom system parameter initialization error, please check whether the type returned by the constructor matches the type required by the processor")
 			}
-			control.InvokeValues[i] = reflect.ValueOf(prama)
+			control.InvokeValues[i] = reflect.ValueOf(parameter)
 			continue
 		}
 		if request.Method != http.MethodGet {
-			err = json.Unmarshal([]byte(v), &data)
+			err = jsoniter.Unmarshal([]byte(v), &data)
 			ErrorMsg(err, "The json parameter decoding failed, please check whether the json data format is correct.error:")
 		} else {
 			switch control.InvokeValues[i].Kind() {
@@ -155,7 +154,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 				}
 				query := request.URL.Query()
 				if control.RESTFul == nil {
-					control.RESTFul = map[string]interface{}{}
+					control.RESTFul = map[string]any{}
 				}
 				for k, v := range query {
 					control.RESTFul[k] = v[0]
@@ -178,7 +177,7 @@ func (control *Controller) analysisInput(request *http.Request) {
 
 }
 
-func getRequest(request *http.Request, control *Controller) []string {
+func GetRequest(request *http.Request, control *Controller) []string {
 	values := make([]string, 0)
 	url := request.RequestURI
 	//解析存在get参数
@@ -199,7 +198,7 @@ func getRequest(request *http.Request, control *Controller) []string {
 	return values
 }
 
-func postRequest(request *http.Request, control *Controller) []string {
+func PostRequest(request *http.Request, control *Controller) []string {
 	values := make([]string, 0)
 	//处理文件上传处理 该处理操作在 中间件阶段可能被执行，两种情况同时出现的情况未测试，可能出现bug
 	request.ParseMultipartForm(control.MaxMultipartMemory)
@@ -212,8 +211,8 @@ func postRequest(request *http.Request, control *Controller) []string {
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式
 			for _, v := range form.Value {
-				vlen := len(v)
-				if vlen == 0 {
+				length := len(v)
+				if length == 0 {
 					continue
 				}
 				values = append(values, v[0])
@@ -223,9 +222,10 @@ func postRequest(request *http.Request, control *Controller) []string {
 	}
 	//非文件上传处理,可能存在bug
 	if request.Body != nil {
-		all, err := ioutil.ReadAll(request.Body)
+		all, err := io.ReadAll(request.Body)
 		if err != nil {
 			//待处理
+			panic(err)
 		}
 		//确保读取到内容
 		if all != nil && len(all) > 0 {
