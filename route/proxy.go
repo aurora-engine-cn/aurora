@@ -15,17 +15,17 @@ import (
 type Proxy struct {
 	*Router
 	errType     reflect.Type
-	Rew         http.ResponseWriter    // http 响应体
-	Req         *http.Request          // http 请求体
-	Middleware  []web.Middleware       // 当前控制器待执行中间件
-	Context     web.Context            // 请求上下文数据
-	File        *web.MultipartFile     // Post文件上传解析值
-	Control     Controller             // 待处理执行器
-	values      []reflect.Value        // 处理器返回值
-	UrlVariable []string               // REST API 顺序值
-	Args        map[string]interface{} // REST API K/V值
-	view        ViewHandle             // 支持自定义视图渲染机制
-	Recover     WebRecover             // 路由错误捕捉器
+	Rew         http.ResponseWriter // http 响应体
+	Req         *http.Request       // http 请求体
+	Middleware  []web.Middleware    // 当前控制器待执行中间件
+	Context     web.Context         // 请求上下文数据
+	File        *web.MultipartFile  // Post文件上传解析值
+	Control     Controller          // 待处理执行器
+	values      []reflect.Value     // 处理器返回值
+	UrlVariable []string            // RESTFul  顺序值
+	RESTFul     map[string]any      // RESTFul  K/V值
+	view        ViewHandle          // 支持自定义视图渲染机制
+	Recover     WebRecover          // 路由错误捕捉器
 }
 
 // start 路由查询入口
@@ -39,7 +39,7 @@ func (proxy *Proxy) start() {
 	c.Proxy = proxy
 	c.Context = proxy.Context
 	c.UrlVariable = proxy.UrlVariable
-	c.RESTFul = proxy.Args
+	c.RESTFul = proxy.RESTFul
 	//执行中间件
 	middlewares := proxy.Middleware
 	for _, middleware := range middlewares {

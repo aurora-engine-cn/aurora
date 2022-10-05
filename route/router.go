@@ -308,7 +308,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					*/
 					if strings.HasPrefix(root.Child[i].Path, c) || strings.HasPrefix(c, root.Child[i].Path) {
 						//r.add(method, root.Child[i], c, path, fun)
-						router.add(method, root.Child[i], c, path, root.Control.Fun.Interface(), root.middleware...) //改  此处的for主要处理  当前路径需要把分裂出来的子路径存储到当前的孩子节点中，传递的被存储的处理器应该是当前的处理器,如出现bug，恢复上面的注释代码
+						router.add(method, root.Child[i], c, path, root.Control.Fun.Interface(), root.middleware...) //改  此处的for主要处理  当前路径需要把分裂出来的子路径存储到当前的孩子节点中，传递的需要存储的处理器应该是当前的处理器,如出现bug，恢复上面的注释代码
 						return
 					}
 				}
@@ -343,7 +343,6 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 				root.Count = strings.Count(path, "/")
 				root.Control = control       //更改当前处理函数
 				root.middleware = middleware //更改当前中间件
-				//此处的操作，大多是处理以竟被注册好的接口进行分裂，注释此处的目的是对日志的控制，被分裂的路径会被二次打印
 				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				router.Debug(l)
 				return
@@ -485,13 +484,11 @@ func (router *Router) findPublicRoot(method, p1, p2, path string) string {
 // urlRouter 检索指定的path路由
 // method 请求类型，path 查询路径，rw，req http生成的请求响应,
 // ctx 中间件请求上下文参数
-func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx web.Context) (*node, []string, map[string]interface{}, web.Context) {
+func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx web.Context) (*node, []string, map[string]any, web.Context) {
 	if ctx == nil {
 		ctx = make(web.Context)
 		ctx[request] = req
 		ctx[response] = rw
-		//ctx[iocs] = router.component
-		//ctx[auroraMaxMultipartMemory] = router.MaxMultipartMemory
 	}
 	// 全局中间件
 	middlewares := router.Middlewares
@@ -525,7 +522,7 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 }
 
 // 路由树查询
-func (router *Router) bfs(root *node, path string) (*node, []string, map[string]interface{}) {
+func (router *Router) bfs(root *node, path string) (*node, []string, map[string]any) {
 	var next *element
 	reqCount := strings.Count(path, "/")
 	q := queue{}
@@ -569,7 +566,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // 请求处理
-func (router *Router) handle(c *node, u []string, args map[string]interface{}, rw http.ResponseWriter, req *http.Request, ctx web.Context) {
+func (router *Router) handle(c *node, u []string, args map[string]any, rw http.ResponseWriter, req *http.Request, ctx web.Context) {
 	proxy := router.ProxyPool.Get().(*Proxy)
 	proxy.Router = router
 	proxy.Rew = rw
@@ -578,7 +575,7 @@ func (router *Router) handle(c *node, u []string, args map[string]interface{}, r
 	proxy.Control = *c.Control
 	proxy.Middleware = c.middleware
 	proxy.UrlVariable = u
-	proxy.Args = args
+	proxy.RESTFul = args
 	proxy.view = View
 	proxy.Recover = errRecover
 	proxy.start()

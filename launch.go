@@ -1,7 +1,7 @@
 package aurora
 
-// Application Aurora应用程序接口
-// 通过继承Aurora 实例来完成web服务的构建
+// Application Web 应用程序接口
+// 通过嵌套匿名 *Engine 实例来完成web服务的构建
 type Application interface {
 	// Use 加载配置
 	Use(...interface{})
@@ -13,10 +13,10 @@ type Application interface {
 	// Router 路由加载函数
 	Router()
 
+	// ioc 容器启动 函数 该函数由 Aurora 实现
+	start()
 	// run 和 ioc 方法通过嵌套(继承 Aurora实例)
 	run() error
-	// ioc 容器启动 函数 该函数由 Aurora 实现
-	ioc()
 }
 
 // Run 启动服务器，启动阶段自动注册当前服务实例
@@ -26,7 +26,7 @@ func Run(app Application) error {
 	// 初始化 服务
 	app.Server()
 	// 启动ioc
-	app.ioc()
+	app.start()
 	// 加载路由
 	app.Router()
 	// 运行服务器

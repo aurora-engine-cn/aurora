@@ -243,8 +243,8 @@ func (engine *Engine) run() error {
 	return engine.server.Serve(l)
 }
 
-// StartIoc 启动容器
-func (engine *Engine) ioc() {
+// start 启动容器
+func (engine *Engine) start() {
 	engine.Info("start component-dependent assembly")
 
 	//加载uses配置项
