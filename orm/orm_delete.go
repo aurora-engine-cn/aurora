@@ -1,7 +1,7 @@
 package orm
 
 import (
-	"orm/sqlbuild"
+	"gitee.com/aurora-engine/aurora/orm/sqlbuild"
 	"reflect"
 )
 

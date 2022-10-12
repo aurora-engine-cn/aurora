@@ -2,8 +2,8 @@ package graph
 
 import (
 	"fmt"
-	"gitee.com/aurora-engine/hutool/queue"
-	"gitee.com/aurora-engine/hutool/stack"
+	"gitee.com/aurora-engine/aurora/pkgs/queue"
+	"gitee.com/aurora-engine/aurora/pkgs/stack"
 )
 
 /*

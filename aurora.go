@@ -83,9 +83,6 @@ type Engine struct {
 	server *http.Server
 
 	ln net.Listener
-
-	// consul 治理中心
-	consulCenter *ConsulCenter
 }
 
 func New(option ...Option) *Engine {

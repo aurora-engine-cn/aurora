@@ -13,6 +13,12 @@ require (
 )
 
 require (
+	gitee.com/aurora-engine/pkgs v0.0.2
+	github.com/druidcaesa/ztool v0.0.1
+	github.com/go-sql-driver/mysql v1.6.0
+)
+
+require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.6.1 // indirect
 	cloud.google.com/go/firestore v1.6.1 // indirect
