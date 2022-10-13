@@ -527,6 +527,7 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 	reqCount := strings.Count(path, "/")
 	q := queue{}
 	q.en(root)
+	next = q.next()
 	for next != nil {
 		n := next.value
 		if n.Control != nil && reqCount == n.Count {
