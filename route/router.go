@@ -527,8 +527,6 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 	reqCount := strings.Count(path, "/")
 	q := queue{}
 	q.en(root)
-star:
-	next = q.next()
 	for next != nil {
 		n := next.value
 		if n.Control != nil && reqCount == n.Count {
@@ -538,20 +536,18 @@ star:
 				}
 			} else {
 				urlArgs, Aargs := analysisRESTFul(n, path)
-				if urlArgs == nil {
-					goto next
+				if urlArgs != nil {
+					return n, urlArgs, Aargs
 				}
-				return n, urlArgs, Aargs
 			}
 		}
-	next:
 		child := n.Child
 		if child != nil {
 			for i := 0; i < len(child); i++ {
 				q.en(child[i])
 			}
 		}
-		goto star
+		next = q.next()
 	}
 	return nil, nil, nil
 }
