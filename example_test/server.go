@@ -1,8 +1,8 @@
 package example
 
 import (
-	"fmt"
 	"gitee.com/aurora-engine/aurora"
+	"net/http/pprof"
 )
 
 // Server 嵌套Aurora定义一个服务 实例
@@ -16,24 +16,20 @@ func (server *Server) Server() {
 
 func (server *Server) Router() {
 	// 添加 app 路由
-
-	server.Get("/a/{name}/bbb/{age}/update", func(name, age string) string {
-		fmt.Printf("A name:%s,age:%s\n", name, age)
-		return "hello world"
+	server.Get("/", func(name, age string) string {
+		return ""
 	})
-
-	server.Get("/b/{name}/bbb/{age}/update", func(name, age string) string {
-		fmt.Printf("B name:%s,age:%s\n", name, age)
-		return "hello world"
+	server.Post("/user", func(name, age string) string {
+		return ""
 	})
-	server.Get("/c/{name}/{age}/update", func(name, age string) string {
-		fmt.Printf("C1 name:%s,age:%s\n", name, age)
-		return "hello world"
+	server.Get("/user/{id}", func(id string) string {
+		return id
 	})
-
-	//server.Get("/c/{name}/{age}/update", func(name, age string) string {
-	//	fmt.Printf("C2 name:%s,age:%s\n", name, age)
-	//	return "hello world"
-	//})
+	pprofs := server.Group("/debug")
+	pprofs.Get("/pprof", pprof.Index)
+	pprofs.Get("/pprof/cmdline", pprof.Cmdline)
+	pprofs.Get("/pprof/profile", pprof.Profile)
+	pprofs.Get("/pprof/symbol", pprof.Symbol)
+	pprofs.Get("/pprof/trace", pprof.Trace)
 
 }

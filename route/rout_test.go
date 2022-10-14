@@ -1,7 +1,6 @@
 package route
 
 import (
-	"github.com/sirupsen/logrus"
 	"testing"
 )
 
@@ -29,13 +28,5 @@ func BenchmarkRESTFul2(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		analysisRESTFul(n, "/a/222")
-	}
-}
-
-func BenchmarkRouter(b *testing.B) {
-	router := New()
-	router.Log = logrus.New()
-	for i := 0; i < b.N; i++ {
-
 	}
 }
