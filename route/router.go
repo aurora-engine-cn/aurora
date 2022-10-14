@@ -582,7 +582,11 @@ func (router *Router) handle(c *node, u []string, args map[string]any, rw http.R
 
 // 获取注册接口函数名称
 func getFunName(fun interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
+	funcName := runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
+	if strings.HasSuffix(funcName, "-fm") {
+		funcName = funcName[:len(funcName)-3]
+	}
+	return funcName
 }
 
 // 处理注册函数路径的开头,去除多余的 / 开头
