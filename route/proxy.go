@@ -78,10 +78,9 @@ func (proxy *Proxy) resultHandler() {
 	}
 	for i := 0; i < len(proxy.values); i++ {
 		//v := proxy.values[i].Interface()
-		//存在 nil 不处理
-		if proxy.values[i].IsZero() {
-			continue
-		}
+		//if v == nil {
+		//	continue
+		//}
 		switch proxy.values[i].Kind() {
 		case reflect.String:
 			value := proxy.values[i].Interface().(string)
