@@ -77,11 +77,10 @@ func (proxy *Proxy) resultHandler() {
 		header.Set(contentType, ResourceMapType[".json"])
 	}
 	for i := 0; i < len(proxy.values); i++ {
-		v := proxy.values[i].Interface()
-		//存在 nil 不处理
-		if v == nil {
-			continue
-		}
+		//v := proxy.values[i].Interface()
+		//if v == nil {
+		//	continue
+		//}
 		switch proxy.values[i].Kind() {
 		case reflect.String:
 			value := proxy.values[i].Interface().(string)

@@ -25,7 +25,7 @@ const (
 	yaml = "application.yaml"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.1)           |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.2)           |"
 
 type Engine struct {
 	// 日志
@@ -83,9 +83,6 @@ type Engine struct {
 	server *http.Server
 
 	ln net.Listener
-
-	// consul 治理中心
-	consulCenter *ConsulCenter
 }
 
 func New(option ...Option) *Engine {

@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-//  处理 pkgs 包下面的自定义数据类型
+//  处理 "gitee.com/aurora-engine/aurora/pkgs/queue" 包下面的自定义数据类型
 
 func AuroraQueueType(value reflect.Value, data any) error {
 

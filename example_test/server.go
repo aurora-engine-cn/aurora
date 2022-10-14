@@ -1,6 +1,9 @@
 package example
 
-import "gitee.com/aurora-engine/aurora"
+import (
+	"fmt"
+	"gitee.com/aurora-engine/aurora"
+)
 
 // Server 嵌套Aurora定义一个服务 实例
 type Server struct {
@@ -14,7 +17,23 @@ func (server *Server) Server() {
 func (server *Server) Router() {
 	// 添加 app 路由
 
-	server.Get("/", func() string {
+	server.Get("/a/{name}/bbb/{age}/update", func(name, age string) string {
+		fmt.Printf("A name:%s,age:%s\n", name, age)
 		return "hello world"
 	})
+
+	server.Get("/b/{name}/bbb/{age}/update", func(name, age string) string {
+		fmt.Printf("B name:%s,age:%s\n", name, age)
+		return "hello world"
+	})
+	server.Get("/c/{name}/{age}/update", func(name, age string) string {
+		fmt.Printf("C1 name:%s,age:%s\n", name, age)
+		return "hello world"
+	})
+
+	//server.Get("/c/{name}/{age}/update", func(name, age string) string {
+	//	fmt.Printf("C2 name:%s,age:%s\n", name, age)
+	//	return "hello world"
+	//})
+
 }

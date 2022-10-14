@@ -527,7 +527,6 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 	reqCount := strings.Count(path, "/")
 	q := queue{}
 	q.en(root)
-star:
 	next = q.next()
 	for next != nil {
 		n := next.value
@@ -537,21 +536,20 @@ star:
 					return n, nil, nil
 				}
 			} else {
-				urlArgs, Aargs := analysisRESTFul(n, path)
-				if urlArgs == nil {
-					goto next
+				//urlArgs, Aargs := analysisRESTFul(n, path)
+				urlArgs, Aargs := RESTFul(n, path)
+				if urlArgs != nil {
+					return n, urlArgs, Aargs
 				}
-				return n, urlArgs, Aargs
 			}
 		}
-	next:
 		child := n.Child
 		if child != nil {
 			for i := 0; i < len(child); i++ {
 				q.en(child[i])
 			}
 		}
-		goto star
+		next = q.next()
 	}
 	return nil, nil, nil
 }
@@ -584,7 +582,11 @@ func (router *Router) handle(c *node, u []string, args map[string]any, rw http.R
 
 // 获取注册接口函数名称
 func getFunName(fun interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
+	funcName := runtime.FuncForPC(reflect.ValueOf(fun).Pointer()).Name()
+	if strings.HasSuffix(funcName, "-fm") {
+		funcName = funcName[:len(funcName)-3]
+	}
+	return funcName
 }
 
 // 处理注册函数路径的开头,去除多余的 / 开头
@@ -687,6 +689,50 @@ func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{})
 		urls = append(urls, reqp)
 		// 重名RESTFul 参数将被覆盖
 		args[rest[1:len(rest)-1]] = reqp
+	}
+	return urls, args
+}
+
+// RESTFul 解析路径参数
+// n 路由节点
+// mapping 前端请求路径
+func RESTFul(n *node, mapping string) ([]string, map[string]any) {
+	FullPath := n.FullPath
+	ReqPath := mapping
+	urls := make([]string, 0)
+	args := make(map[string]interface{})
+	length := len(FullPath)
+	lengthReq := len(ReqPath)
+	star := 0
+	for star < length {
+		if FullPath[star:star+1] == "{" {
+			i := star
+			for ; i < lengthReq; i++ {
+				if ReqPath[i:i+1] == "/" {
+					break
+				}
+			}
+			j := star
+			for ; j < length; j++ {
+				if FullPath[j:j+1] == "}" {
+					break
+				}
+			}
+			key := FullPath[star+1 : j]
+			value := ReqPath[star:i]
+			args[key] = value
+			urls = append(urls, value)
+			//更新路径，从零开始
+			FullPath = FullPath[j+1:]
+			ReqPath = ReqPath[i:]
+			star = 0
+			length = len(FullPath)
+			lengthReq = len(ReqPath)
+			continue
+		} else if star >= lengthReq || FullPath[star:star+1] != ReqPath[star:star+1] {
+			return nil, nil
+		}
+		star++
 	}
 	return urls, args
 }
