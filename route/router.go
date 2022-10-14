@@ -536,7 +536,8 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 					return n, nil, nil
 				}
 			} else {
-				urlArgs, Aargs := analysisRESTFul(n, path)
+				//urlArgs, Aargs := analysisRESTFul(n, path)
+				urlArgs, Aargs := RESTFul(n, path)
 				if urlArgs != nil {
 					return n, urlArgs, Aargs
 				}
@@ -684,6 +685,50 @@ func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{})
 		urls = append(urls, reqp)
 		// 重名RESTFul 参数将被覆盖
 		args[rest[1:len(rest)-1]] = reqp
+	}
+	return urls, args
+}
+
+// RESTFul 解析路径参数
+// n 路由节点
+// mapping 前端请求路径
+func RESTFul(n *node, mapping string) ([]string, map[string]any) {
+	FullPath := n.FullPath
+	ReqPath := mapping
+	urls := make([]string, 0)
+	args := make(map[string]interface{})
+	length := len(FullPath)
+	lengthReq := len(ReqPath)
+	star := 0
+	for star < length {
+		if FullPath[star:star+1] == "{" {
+			i := star
+			for ; i < lengthReq; i++ {
+				if ReqPath[i:i+1] == "/" {
+					break
+				}
+			}
+			j := star
+			for ; j < length; j++ {
+				if FullPath[j:j+1] == "}" {
+					break
+				}
+			}
+			key := FullPath[star+1 : j]
+			value := ReqPath[star:i]
+			args[key] = value
+			urls = append(urls, value)
+			//更新路径，从零开始
+			FullPath = FullPath[j+1:]
+			ReqPath = ReqPath[i:]
+			star = 0
+			length = len(FullPath)
+			lengthReq = len(ReqPath)
+			continue
+		} else if star >= lengthReq || FullPath[star:star+1] != ReqPath[star:star+1] {
+			return nil, nil
+		}
+		star++
 	}
 	return urls, args
 }
