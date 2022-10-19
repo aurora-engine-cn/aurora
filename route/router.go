@@ -501,7 +501,8 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 	if router.isStatic(path, rw, req) {
 		return nil, nil, nil, nil
 	}
-	if index := strings.Index(path, "."); index != -1 {
+	if index := strings.LastIndex(path, "."); index != -1 {
+		// 通过 isStatic 静态资源校验，如果是资源请求，重定向到资源服务接口
 		path = router.FileService
 	}
 	//查找指定的Method树
@@ -520,13 +521,13 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 // 路由树查询
 func (router *Router) bfs(root *node, path string) (*node, []string, map[string]any) {
 	var next *element
-	reqCount := strings.Count(path, "/")
+	//reqCount := strings.Count(path, "/") && reqCount == n.Count
 	q := queue{}
 	q.en(root)
 	next = q.next()
 	for next != nil {
 		n := next.value
-		if n.Control != nil && reqCount == n.Count {
+		if n.Control != nil {
 			if !n.RESTFul {
 				if path == n.FullPath {
 					return n, nil, nil
