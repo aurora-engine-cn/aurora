@@ -532,9 +532,9 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 					return n, nil, nil
 				}
 			} else {
-				urlArgs, Aargs := RESTFul(n, path)
+				urlArgs, args := RESTFul(n, path)
 				if urlArgs != nil {
-					return n, urlArgs, Aargs
+					return n, urlArgs, args
 				}
 			}
 		}
