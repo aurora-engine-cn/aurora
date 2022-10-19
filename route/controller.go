@@ -256,9 +256,9 @@ func check(value reflect.Value) (bool, error) {
 			field := value.Type().Field(i)
 			tag := field.Tag
 
-			// 检查 empty 空值校验
-			empty := tag.Get("empty")
-			if empty != "" {
+			// 检查 empty 空值校验,empty 为false 表示该字段不能为空 true 表示字段可以为空
+			empty, b := tag.Lookup("empty")
+			if b && empty != "" {
 				parseBool, err := strconv.ParseBool(empty)
 				ErrorMsg(err, "tag:empty '"+empty+"' value could not be parsed")
 				if value.Field(i).IsZero() && !parseBool {

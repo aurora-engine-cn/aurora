@@ -186,6 +186,11 @@ func (engine *Engine) Use(Configuration ...any) {
 	}
 }
 
+// Verify 参数验证器
+func (engine *Engine) Verify(tag string, fun web.Verify) {
+
+}
+
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
 func (engine *Engine) GetConfig() web.Config {
 	return engine.config

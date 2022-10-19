@@ -88,16 +88,6 @@ type Router struct {
 	Mux                *sync.Mutex                  // 注册路由并发锁
 }
 
-// node 路由节点
-type node struct {
-	Path       string           //当前节点路径
-	FullPath   string           //当前处理器全路径
-	Count      int              //路径数量
-	middleware []web.Middleware //中间处理函数
-	Control    *Controller      //服务处理函数
-	Child      []*node          //子节点
-}
-
 func New() *Router {
 	router := new(Router)
 	router.ProxyPool = &sync.Pool{

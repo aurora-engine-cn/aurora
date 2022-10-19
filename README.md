@@ -47,7 +47,7 @@ if err != nil {
 ```
 
 ## 文档
-有关更多的使用操作请查看 [最新在线文档](https://gitee.com/aurora-engine/aurora/wikis/v1.3.x/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%85%A5%E9%97%A8)
+有关更多的使用操作请查看 [最新在线文档 Wiki](https://gitee.com/aurora-engine/aurora/wikis/v1.3.x/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%85%A5%E9%97%A8)
 
 ## 关于作者
 
