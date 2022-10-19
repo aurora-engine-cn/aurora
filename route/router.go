@@ -207,10 +207,10 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 		root.Path = Path
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
+		root.RESTFul = strings.Contains(path, "{")
 		root.Child = nil
 		root.Control = control
 		root.middleware = middleware
-
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		router.Debug(l)
 		return
@@ -225,6 +225,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 		root.middleware = middleware
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
+		root.RESTFul = strings.Contains(path, "{")
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		router.Debug(l)
 		return
@@ -275,6 +276,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					Path:       c,
 					FullPath:   path,
 					Count:      strings.Count(path, "/"),
+					RESTFul:    strings.Contains(path, "{"),
 					middleware: middleware,
 					Control:    control,
 					Child:      nil,
@@ -322,6 +324,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					&node{
 						Path:       c,
 						FullPath:   root.FullPath,
+						RESTFul:    root.RESTFul,
 						Count:      root.Count,
 						Child:      tempChild,
 						middleware: root.middleware,
@@ -331,6 +334,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 				root.Path = root.Path[:i] //修改当前节点为添加的路径，（被添加结点刚好是父节点）
 				root.FullPath = path
 				root.Count = strings.Count(path, "/")
+				root.RESTFul = strings.Contains(path, "{")
 				root.Control = control       //更改当前处理函数
 				root.middleware = middleware //更改当前中间件
 				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
@@ -375,9 +379,9 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 			root.Child = make([]*node, 0) //重新分配
 			root.Child = append(root.Child,
 				&node{
-					Path:     ch1,
-					FullPath: root.FullPath,
-
+					Path:       ch1,
+					FullPath:   root.FullPath,
+					RESTFul:    root.RESTFul,
 					Count:      root.Count,
 					Child:      chChild,
 					middleware: root.middleware,
@@ -415,6 +419,7 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 				Path:       ch2,
 				FullPath:   path,
 				Count:      strings.Count(path, "/"),
+				RESTFul:    strings.Contains(path, "{"),
 				Child:      nil,
 				middleware: middleware,
 				Control:    control,
@@ -429,6 +434,7 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 				root.FullPath = path
 				root.middleware = middleware
 				root.Count = strings.Count(path, "/")
+				root.RESTFul = strings.Contains(path, "{")
 				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				router.Debug(l)
 			}
@@ -521,12 +527,11 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 	for next != nil {
 		n := next.value
 		if n.Control != nil && reqCount == n.Count {
-			if !strings.Contains(n.FullPath, "{") {
+			if !n.RESTFul {
 				if path == n.FullPath {
 					return n, nil, nil
 				}
 			} else {
-				//urlArgs, Aargs := analysisRESTFul(n, path)
 				urlArgs, Aargs := RESTFul(n, path)
 				if urlArgs != nil {
 					return n, urlArgs, Aargs
