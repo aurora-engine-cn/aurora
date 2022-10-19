@@ -58,6 +58,9 @@ type Engine struct {
 	// 自定义系统参数
 	intrinsic map[string]web.Variate
 
+	// 结构体字段校验
+	checkout map[string]web.Verify
+
 	//Aurora 配置启动配置项
 	opt []Option
 
