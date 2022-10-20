@@ -1,7 +1,6 @@
 package route
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -34,22 +33,24 @@ func BenchmarkRESTFul2(b *testing.B) {
 
 func BenchmarkCount(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		strings.Count("/a/222/sad/asc/a//das/dasf/asdfaf/as/f/asf/as/f", "/")
+		If(1)
 	}
 }
 
 func BenchmarkCountChar(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		CountChar("/a/222/sad/asc/a//das/dasf/asdfaf/as/f/asf/as/f", "/")
+		Switch(1)
 	}
 }
 
-func CountChar(parent, sub string) int {
-	c := 0
-	for i := 0; i < len(parent); i++ {
-		if parent[i:i+1] == sub {
-			c++
-		}
+func If(t int) {
+	if t == 1 {
+
 	}
-	return c
+}
+func Switch(t int) {
+	switch t {
+	case 1:
+
+	}
 }

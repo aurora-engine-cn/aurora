@@ -239,7 +239,8 @@ func PostRequest(request *http.Request, control *Controller) []string {
 func (control *Controller) checkConstrain() error {
 	for i := 0; i < len(control.InvokeValues); i++ {
 		if ok, err := check(control.InvokeValues[i]); !ok {
-			return fmt.Errorf("'%s.%s' constraint check failed", control.InvokeValues[i].Type().String(), err.Error())
+			// 待优化消息提示具体到函数名称
+			return fmt.Errorf("the '%s' controller in '%s.%s' constraint check failed", control.FunType.String(), control.InvokeValues[i].Type().String(), err.Error())
 		}
 	}
 	return nil
