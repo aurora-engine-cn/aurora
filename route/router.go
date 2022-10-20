@@ -553,20 +553,6 @@ walk:
 					}
 				}
 			}
-			//if !n.RESTFul {
-			//	if path == n.FullPath {
-			//		return n, nil, nil
-			//	}
-			//} else {
-			//	// reqCount == n.Count 数量统计核心区分RESTFul子路径
-			//	reqCount := strings.Count(path, "/")
-			//	if reqCount == n.Count {
-			//		urlArgs, args := RESTFul(n, path)
-			//		if urlArgs != nil {
-			//			return n, urlArgs, args
-			//		}
-			//	}
-			//}
 		}
 		child := n.Child
 		if child != nil {
