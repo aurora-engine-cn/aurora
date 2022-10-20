@@ -389,7 +389,6 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 				&node{
 					Path:       ch1,
 					FullPath:   root.FullPath,
-					RESTFul:    root.RESTFul,
 					NodeType:   root.NodeType,
 					Count:      root.Count,
 					Child:      chChild,
