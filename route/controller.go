@@ -267,6 +267,13 @@ func check(value reflect.Value) (bool, error) {
 					return false, fmt.Errorf("%s", field.Name)
 				}
 			}
+
+			// 检查默认值 constraint 的值应该是一个字符串,并且使用分号隔开
+			// constraint 用于调用自定义约束
+			constraint, b := tag.Lookup("constraint")
+			if b && constraint != "" {
+
+			}
 		}
 	}
 	return true, nil

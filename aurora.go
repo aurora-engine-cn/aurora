@@ -25,7 +25,7 @@ const (
 	yaml = "application.yaml"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.2)           |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.3)           |"
 
 type Engine struct {
 	// 日志
@@ -59,7 +59,7 @@ type Engine struct {
 	intrinsic map[string]web.Variate
 
 	// 结构体字段校验
-	checkout map[string]web.Verify
+	constraints map[string]web.Verify
 
 	//Aurora 配置启动配置项
 	opt []Option

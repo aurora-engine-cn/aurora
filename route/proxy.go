@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var errImp = reflect.TypeOf(new(error)).Elem()
+
 // Proxy
 // 主要完成 接口调用 和 处理响应
 type Proxy struct {
@@ -33,8 +35,7 @@ func (proxy *Proxy) start() {
 	//defer 处理在执行接口期间的一切 panic处理
 	defer proxy.Recover(proxy)
 	//存储error类型 用于catch捕捉
-	ef := reflect.TypeOf(new(error)).Elem()
-	proxy.errType = ef
+	proxy.errType = errImp
 	c := proxy.Control
 	c.Proxy = proxy
 	c.Context = proxy.Context
@@ -77,10 +78,6 @@ func (proxy *Proxy) resultHandler() {
 		header.Set(contentType, ResourceMapType[".json"])
 	}
 	for i := 0; i < len(proxy.values); i++ {
-		//v := proxy.values[i].Interface()
-		//if v == nil {
-		//	continue
-		//}
 		switch proxy.values[i].Kind() {
 		case reflect.String:
 			value := proxy.values[i].Interface().(string)

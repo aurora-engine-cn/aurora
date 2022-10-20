@@ -13,7 +13,7 @@ type Server struct {
 
 type GetArgs struct {
 	Name string `empty:"false"`
-	Age  int
+	Age  int    `constraint:"isEmpty"`
 }
 
 func (server *Server) Server() {
@@ -39,6 +39,10 @@ func (server *Server) Router() {
 
 	server.Get("/abcs", func() {
 		fmt.Printf("abcs\n")
+	})
+
+	server.Get("/test", func(args GetArgs) {
+
 	})
 
 	server.Post("/user", func(name, age string) string {
