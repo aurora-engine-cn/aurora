@@ -15,6 +15,14 @@ go1.19
 
 ## 快速开始
 
+## 导入
+```go
+import (
+    "gitee.com/aurora-engine/aurora"
+)
+
+```
+
 创建一个结构体，嵌套一个匿名`*aurora.Engine` 实例 完成对服务器的创建
 ```go
 // Server 嵌套Aurora定义一个服务 实例
