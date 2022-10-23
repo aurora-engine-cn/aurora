@@ -2,7 +2,6 @@ package container
 
 // container.go 用于重构 ioc.go
 // 从 go1.19 版本开始 container.go 只接受指针变量放入容器
-// 之前版本的容器对匿名的依赖装配做了一个有则装配，没有也不会最做出错误提示，现在版本的不区分匿名和具名，只要没有找到可装配依赖就提示容器初始化失败(后续可能优化)
 
 import (
 	"errors"
@@ -108,7 +107,7 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 			continue
 		}
 		var depValue *reflect.Value
-		Key := DepKey(fieldType)
+		Key, check := DepKey(fieldType)
 		//开始查询 tag 的 引用 id 是否在主容器中
 		depValue, ok := space.mainCache[Key]
 		if !ok {
@@ -120,7 +119,7 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				// 存放到一级缓存 之前需要判定当前初始化的实例是否已经在第一缓存中,这里判断的目的主要是校验完成初级缓存加载后
 				// 继续进行第二次缓存加载依然无法找到指定的 tag 引用，这个情况下找不到的引用只可能是不存在于容器中，在第二次缓存加载走到这里就是错误的
 				_, is := space.firstCache[depKey]
-				if is {
+				if is && check {
 					// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
 					return fmt.Errorf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
 				}
@@ -176,8 +175,10 @@ func (space *Space) CacheCheck(key string, value any) (string, error) {
 // DepKey 通过字段结构获取依赖 key
 // 优先获取 tag属性的ref值
 // 没有ref属性值 则获取包路径加类型全面
-func DepKey(filed reflect.StructField) string {
+func DepKey(filed reflect.StructField) (string, bool) {
 	depKey := ""
+	// check 标识 通过 tag 方式初始化的 变量，必须要校验
+	check := true
 	if r, b := filed.Tag.Lookup("ref"); b && r != "" {
 		depKey = r
 	} else {
@@ -186,8 +187,9 @@ func DepKey(filed reflect.StructField) string {
 		} else {
 			depKey = fmt.Sprintf("%s-%s", filed.Type.PkgPath(), filed.Type.String())
 		}
+		check = false
 	}
-	return depKey
+	return depKey, check
 }
 
 // TypeKey 获取任意类型的 key

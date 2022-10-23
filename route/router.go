@@ -543,7 +543,7 @@ walk:
 					return n, nil, nil
 				}
 			default:
-				// reqCount == n.Count 数量统计核心区分RESTFul子路径
+				// reqCount 数量统计核心区分RESTFul子路径
 				reqCount := strings.Count(path, "/")
 				if reqCount == n.Count {
 					urlArgs, args := RESTFul(n, path)
