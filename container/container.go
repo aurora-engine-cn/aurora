@@ -119,9 +119,15 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				// 存放到一级缓存 之前需要判定当前初始化的实例是否已经在第一缓存中,这里判断的目的主要是校验完成初级缓存加载后
 				// 继续进行第二次缓存加载依然无法找到指定的 tag 引用，这个情况下找不到的引用只可能是不存在于容器中，在第二次缓存加载走到这里就是错误的
 				_, is := space.firstCache[depKey]
-				if is && check {
-					// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
-					return fmt.Errorf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
+				if is {
+					msg := fmt.Sprintf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
+					if check {
+						// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
+						return errors.New(msg)
+					}
+					fmt.Println(msg)
+					// 跳过该属性的初始化
+					continue
 				}
 				space.firstCache[depKey] = &value
 				// 存储完成后 删除原来 kv中的该实例 ,以防下次重复
