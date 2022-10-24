@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"runtime/debug"
 	"strings"
 )
 
@@ -30,6 +31,7 @@ func errRecover(proxy *Proxy) {
 			msg = string(marshal)
 		}
 		proxy.Error(msg)
+		debug.PrintStack()
 		http.Error(rew, msg, 500)
 		return
 	}
@@ -55,7 +57,6 @@ func (c *Catch) invoke(err reflect.Value) []reflect.Value {
 	c.in[0] = err
 	return c.fun.Call(c.in)
 }
-
 
 func (router *Router) registerErrorCatch(err any) {
 	if err == nil {
