@@ -38,7 +38,6 @@ func (server *Server) Server() {
 
 func (server *Server) Router() {
 	// 添加 app 路由
-
 	server.Get("/", func() string {
 		return "hello world"
 	})
