@@ -83,7 +83,7 @@ func (proxy *Proxy) resultHandler() {
 			value := proxy.values[i].Interface().(string)
 			stringData(proxy, value)
 		//对于接口的返回，目前只做了对错误的支持，app 开发中对抽象类型的设计应该不会太多，大部分直接返回实体数据了
-		case reflect.Ptr, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
+		case reflect.Pointer, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
 			otherData(proxy, proxy.values[i])
 		case reflect.Interface:
 			anyData(proxy, proxy.values[i])
