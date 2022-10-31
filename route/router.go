@@ -79,13 +79,14 @@ type Router struct {
 	PathPool           *sync.Pool                   // 分配路径构建
 	Catches            map[reflect.Type]Catch       // 全局错误捕捉处理
 	Api                map[string][]web.ControlInfo // 接口信息
-	Middlewares        []web.Middleware             // 全局中间件
-	Controllers        []*reflect.Value             // 存储结构体全局控制器
-	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	Intrinsic          map[string]web.Variate       // 自定义系统参 初始化来自 Engine
-	config             web.Config                   // 配置实例，读取配置文件
-	Tree               map[string]*node             // 路由树根节点
-	Mux                *sync.Mutex                  // 注册路由并发锁
+	Constraints        map[string]web.Verify
+	Middlewares        []web.Middleware       // 全局中间件
+	Controllers        []*reflect.Value       // 存储结构体全局控制器
+	DefaultView        web.ViewHandle         // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	Intrinsic          map[string]web.Variate // 自定义系统参 初始化来自 Engine
+	config             web.Config             // 配置实例，读取配置文件
+	Tree               map[string]*node       // 路由树根节点
+	Mux                *sync.Mutex            // 注册路由并发锁
 }
 
 func New() *Router {
@@ -101,7 +102,7 @@ func New() *Router {
 		},
 	}
 	router.Mux = &sync.Mutex{}
-
+	router.Constraints = map[string]web.Verify{}
 	return router
 }
 
@@ -137,6 +138,10 @@ func (router *Router) Cache(method string, url string, control any, middleware .
 	} else {
 		router.Api[method] = append(router.Api[method], api)
 	}
+}
+
+func (router *Router) Constraint(tag string, verify web.Verify) {
+	router.Constraints[tag] = verify
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -201,7 +206,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 	var nodeType int
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic, Constraints: router.Constraints}
 	control.InitArgs()
 	if strings.Contains(path, "{") {
 		nodeType = RESTFulType

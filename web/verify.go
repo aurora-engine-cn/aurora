@@ -1,3 +1,3 @@
 package web
 
-type Verify func(any) error
+type Verify func(value any) error

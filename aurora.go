@@ -58,9 +58,6 @@ type Engine struct {
 	// 自定义系统参数
 	intrinsic map[string]web.Variate
 
-	// 结构体字段校验
-	constraints map[string]web.Verify
-
 	//Aurora 配置启动配置项
 	opt []Option
 
@@ -189,9 +186,9 @@ func (engine *Engine) Use(Configuration ...any) {
 	}
 }
 
-// Verify 参数验证器
-func (engine *Engine) Verify(tag string, fun web.Verify) {
-
+// Constraint 参数验证器
+func (engine *Engine) Constraint(tag string, verify web.Verify) {
+	engine.router.Constraint(tag, verify)
 }
 
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的

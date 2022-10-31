@@ -1,6 +1,7 @@
 package example
 
 import (
+	"errors"
 	"gitee.com/aurora-engine/aurora"
 	"net/http/pprof"
 )
@@ -12,15 +13,26 @@ type Server struct {
 
 type GetArgs struct {
 	Name string `empty:"false"`
-	Age  int    `constraint:"isEmpty"`
+	Age  int    `constraint:"check"`
 }
 
 func (server *Server) Server() {
 	// 进行一下初始化操作，比如 控制器实例，全局中间件，全局变量，第三方依赖库等操作
+
+	server.Constraint("check", func(value any) error {
+		if value.(int) <= 0 {
+			return errors.New("error value is 0")
+		}
+		return nil
+	})
 }
 
 func (server *Server) Router() {
 	// 添加 app 路由
+
+	server.Get("test", func(args GetArgs) {
+
+	})
 
 	server.Post("/user", func(name, age string) string {
 		return ""
@@ -28,9 +40,7 @@ func (server *Server) Router() {
 	server.Get("/user/{id}", func(id string) string {
 		return id
 	})
-	server.Get("/user/{id}", func(id string) string {
-		return id
-	})
+
 	pprofs := server.Group("/debug")
 	pprofs.Get("/pprof", pprof.Index)
 	pprofs.Get("/pprof/cmdline", pprof.Cmdline)
