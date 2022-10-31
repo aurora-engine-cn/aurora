@@ -241,7 +241,7 @@ func (control *Controller) checkConstrain() error {
 	for i := 0; i < len(control.InvokeValues); i++ {
 		if ok, err := control.check(control.InvokeValues[i]); !ok {
 			// 待优化消息提示具体到函数名称
-			return fmt.Errorf("the '%s' controller in '%s.%s' constraint check failed", control.FunType.String(), control.InvokeValues[i].Type().String(), err.Error())
+			return err
 		}
 	}
 	return nil
@@ -265,7 +265,7 @@ func (control *Controller) check(value reflect.Value) (bool, error) {
 				ErrorMsg(err, "tag:empty '"+empty+"' value could not be parsed")
 				if value.Field(i).IsZero() && !parseBool {
 					// 校验不通过
-					return false, fmt.Errorf("%s", field.Name)
+					return false, fmt.Errorf("the '%s' controller in '%s.%s' constraint check failed", control.FunType.String(), control.InvokeValues[i].Type().String(), field.Name)
 				}
 			}
 
