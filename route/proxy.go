@@ -142,36 +142,37 @@ func stringData(proxy *Proxy, value string) {
 
 func otherData(proxy *Proxy, value reflect.Value) {
 	of := value.Type()
-	if of.Implements(proxy.errType) {
-		//错误捕捉
+	var v = value.Interface()
+	switch v.(type) {
+	case error:
 		proxy.catchError(of, value)
 		return
+
+	case int, float64, bool:
+
+	default:
+		marshal, err := jsoniter.Marshal(value.Interface())
+		ErrorMsg(err)
+		proxy.Rew.Write(marshal)
 	}
-	marshal, err := jsoniter.Marshal(value.Interface())
-	ErrorMsg(err)
-	proxy.Rew.Write(marshal)
 }
 
 func anyData(proxy *Proxy, value reflect.Value) {
 	valuer := value.Elem()
 	of := value.Type()
-	if !of.Implements(proxy.errType) {
-		//没有实现,反射校验接口是否实现的小坑，实现接口的形式要和统一，比如 反射类型是指针，实现接口绑定的方式要是指针
-		//此处可能返回 interface{} 的数据 没有实现error的当作数据 返回
-		var marshal []byte
-		v := valuer.Interface()
-		switch v.(type) {
-		case string:
-			//对字符串不仅处理
-			marshal = []byte(v.(string))
-		default:
-			s, err := jsoniter.Marshal(v)
-			ErrorMsg(err)
-			marshal = s
-		}
+	var marshal []byte
+	var v = valuer.Interface()
+	switch v.(type) {
+	case error:
+		proxy.catchError(of, value)
+	case string:
+		//对字符串不仅处理
+		marshal = []byte(v.(string))
+	default:
+		s, err := jsoniter.Marshal(v)
+		ErrorMsg(err)
+		marshal = s
 		proxy.Rew.Write(marshal)
 		return
 	}
-	//错误捕捉
-	proxy.catchError(of, value)
 }
