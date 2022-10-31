@@ -25,6 +25,7 @@ import (
 
 type Controller struct {
 	*Proxy
+	Constraints     map[string]web.Verify
 	Context         web.Context     //上下文数据
 	UrlVariable     []string        //路径参数,按顺序依次
 	RESTFul         map[string]any  // K/V 路径参数 控制器解析中，请求参数参数名尽量不要和 RESTFul 参数同名，否则会覆盖
@@ -238,16 +239,17 @@ func PostRequest(request *http.Request, control *Controller) []string {
 // 检查结构体参数中的约束是否满足对应检查
 func (control *Controller) checkConstrain() error {
 	for i := 0; i < len(control.InvokeValues); i++ {
-		if ok, err := check(control.InvokeValues[i]); !ok {
-			return fmt.Errorf("'%s.%s' constraint check failed", control.InvokeValues[i].Type().String(), err.Error())
+		if ok, err := control.check(control.InvokeValues[i]); !ok {
+			// 待优化消息提示具体到函数名称
+			return err
 		}
 	}
 	return nil
 }
 
-func check(value reflect.Value) (bool, error) {
+func (control *Controller) check(value reflect.Value) (bool, error) {
 	if value.Kind() == reflect.Ptr {
-		return check(value.Elem())
+		return control.check(value.Elem())
 	}
 	if value.Kind() == reflect.Struct {
 		// 校验各个 字段的 tar
@@ -256,16 +258,34 @@ func check(value reflect.Value) (bool, error) {
 			field := value.Type().Field(i)
 			tag := field.Tag
 
-			// 检查 empty 空值校验
-			empty := tag.Get("empty")
-			if empty != "" {
+			// 检查 empty 空值校验,empty 为false 表示该字段不能为空 true 表示字段可以为空
+			empty, b := tag.Lookup("empty")
+			if b && empty != "" {
 				parseBool, err := strconv.ParseBool(empty)
 				ErrorMsg(err, "tag:empty '"+empty+"' value could not be parsed")
 				if value.Field(i).IsZero() && !parseBool {
 					// 校验不通过
-					return false, fmt.Errorf("%s", field.Name)
+					return false, fmt.Errorf("the '%s' controller in '%s.%s' constraint check failed", control.FunType.String(), control.InvokeValues[i].Type().String(), field.Name)
 				}
 			}
+
+			// 检查默认值 constraint 的值应该是一个字符串,并且使用分号隔开
+			// constraint 用于调用自定义约束
+			constraint, b := tag.Lookup("constraint")
+			if b && constraint != "" {
+				tags := strings.Split(constraint, ";")
+				for j := 0; j < len(tags); j++ {
+					tagKey := tags[j]
+					tagKey = strings.TrimSpace(tagKey)
+					if ConstraintFunc, flag := control.Constraints[tagKey]; flag {
+						err := ConstraintFunc(value.Field(i).Interface())
+						if err != nil {
+							return false, err
+						}
+					}
+				}
+			}
+
 		}
 	}
 	return true, nil

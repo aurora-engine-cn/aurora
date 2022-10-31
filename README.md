@@ -15,6 +15,14 @@ go1.19
 
 ## 快速开始
 
+## 导入
+```go
+import (
+    "gitee.com/aurora-engine/aurora"
+)
+
+```
+
 创建一个结构体，嵌套一个匿名`*aurora.Engine` 实例 完成对服务器的创建
 ```go
 // Server 嵌套Aurora定义一个服务 实例
@@ -30,7 +38,6 @@ func (server *Server) Server() {
 
 func (server *Server) Router() {
 	// 添加 app 路由
-
 	server.Get("/", func() string {
 		return "hello world"
 	})
@@ -47,7 +54,7 @@ if err != nil {
 ```
 
 ## 文档
-有关更多的使用操作请查看 [最新在线文档](https://go-aurora-engine.github.io/)
+有关更多的使用操作请查看 [最新在线文档](https://go-aurora-engine.github.io)
 
 ## 关于作者
 

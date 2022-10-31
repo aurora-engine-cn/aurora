@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var errImp = reflect.TypeOf(new(error)).Elem()
+
 // Proxy
 // 主要完成 接口调用 和 处理响应
 type Proxy struct {
@@ -33,8 +35,7 @@ func (proxy *Proxy) start() {
 	//defer 处理在执行接口期间的一切 panic处理
 	defer proxy.Recover(proxy)
 	//存储error类型 用于catch捕捉
-	ef := reflect.TypeOf(new(error)).Elem()
-	proxy.errType = ef
+	proxy.errType = errImp
 	c := proxy.Control
 	c.Proxy = proxy
 	c.Context = proxy.Context
@@ -77,16 +78,12 @@ func (proxy *Proxy) resultHandler() {
 		header.Set(contentType, ResourceMapType[".json"])
 	}
 	for i := 0; i < len(proxy.values); i++ {
-		//v := proxy.values[i].Interface()
-		//if v == nil {
-		//	continue
-		//}
 		switch proxy.values[i].Kind() {
 		case reflect.String:
 			value := proxy.values[i].Interface().(string)
 			stringData(proxy, value)
 		//对于接口的返回，目前只做了对错误的支持，app 开发中对抽象类型的设计应该不会太多，大部分直接返回实体数据了
-		case reflect.Ptr, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
+		case reflect.Pointer, reflect.Struct, reflect.Slice, reflect.Int, reflect.Float64, reflect.Bool, reflect.Map:
 			otherData(proxy, proxy.values[i])
 		case reflect.Interface:
 			anyData(proxy, proxy.values[i])
@@ -145,36 +142,37 @@ func stringData(proxy *Proxy, value string) {
 
 func otherData(proxy *Proxy, value reflect.Value) {
 	of := value.Type()
-	if of.Implements(proxy.errType) {
-		//错误捕捉
+	var v = value.Interface()
+	switch v.(type) {
+	case error:
 		proxy.catchError(of, value)
 		return
+
+	case int, float64, bool:
+
+	default:
+		marshal, err := jsoniter.Marshal(value.Interface())
+		ErrorMsg(err)
+		proxy.Rew.Write(marshal)
 	}
-	marshal, err := jsoniter.Marshal(value.Interface())
-	ErrorMsg(err)
-	proxy.Rew.Write(marshal)
 }
 
 func anyData(proxy *Proxy, value reflect.Value) {
 	valuer := value.Elem()
 	of := value.Type()
-	if !of.Implements(proxy.errType) {
-		//没有实现,反射校验接口是否实现的小坑，实现接口的形式要和统一，比如 反射类型是指针，实现接口绑定的方式要是指针
-		//此处可能返回 interface{} 的数据 没有实现error的当作数据 返回
-		var marshal []byte
-		v := valuer.Interface()
-		switch v.(type) {
-		case string:
-			//对字符串不仅处理
-			marshal = []byte(v.(string))
-		default:
-			s, err := jsoniter.Marshal(v)
-			ErrorMsg(err)
-			marshal = s
-		}
+	var marshal []byte
+	var v = valuer.Interface()
+	switch v.(type) {
+	case error:
+		proxy.catchError(of, value)
+	case string:
+		//对字符串不仅处理
+		marshal = []byte(v.(string))
+	default:
+		s, err := jsoniter.Marshal(v)
+		ErrorMsg(err)
+		marshal = s
 		proxy.Rew.Write(marshal)
 		return
 	}
-	//错误捕捉
-	proxy.catchError(of, value)
 }

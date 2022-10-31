@@ -79,23 +79,14 @@ type Router struct {
 	PathPool           *sync.Pool                   // 分配路径构建
 	Catches            map[reflect.Type]Catch       // 全局错误捕捉处理
 	Api                map[string][]web.ControlInfo // 接口信息
-	Middlewares        []web.Middleware             // 全局中间件
-	Controllers        []*reflect.Value             // 存储结构体全局控制器
-	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
-	Intrinsic          map[string]web.Variate       // 自定义系统参 初始化来自 Engine
-	config             web.Config                   // 配置实例，读取配置文件
-	Tree               map[string]*node             // 路由树根节点
-	Mux                *sync.Mutex                  // 注册路由并发锁
-}
-
-// node 路由节点
-type node struct {
-	Path       string           //当前节点路径
-	FullPath   string           //当前处理器全路径
-	Count      int              //路径数量
-	middleware []web.Middleware //中间处理函数
-	Control    *Controller      //服务处理函数
-	Child      []*node          //子节点
+	Constraints        map[string]web.Verify
+	Middlewares        []web.Middleware       // 全局中间件
+	Controllers        []*reflect.Value       // 存储结构体全局控制器
+	DefaultView        web.ViewHandle         // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	Intrinsic          map[string]web.Variate // 自定义系统参 初始化来自 Engine
+	config             web.Config             // 配置实例，读取配置文件
+	Tree               map[string]*node       // 路由树根节点
+	Mux                *sync.Mutex            // 注册路由并发锁
 }
 
 func New() *Router {
@@ -111,7 +102,7 @@ func New() *Router {
 		},
 	}
 	router.Mux = &sync.Mutex{}
-
+	router.Constraints = map[string]web.Verify{}
 	return router
 }
 
@@ -147,6 +138,10 @@ func (router *Router) Cache(method string, url string, control any, middleware .
 	} else {
 		router.Api[method] = append(router.Api[method], api)
 	}
+}
+
+func (router *Router) Constraint(tag string, verify web.Verify) {
+	router.Constraints[tag] = verify
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -208,19 +203,23 @@ func (router *Router) Register(method, path string, control any, middleware ...w
 // path: 插入的路径(日志相关参数)
 func (router *Router) add(method string, root *node, Path string, path string, fun any, middleware ...web.Middleware) {
 	var l string
+	var nodeType int
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
-	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic}
+	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic, Constraints: router.Constraints}
 	control.InitArgs()
+	if strings.Contains(path, "{") {
+		nodeType = RESTFulType
+	}
 	//初始化根,此处的初始化根在Aurora 实例化阶段代替，该段if后期可以暂时忽略，没有初始化的根路由 的第一个节点默认为 ""以此判断初始化
 	if root.Path == "" && root.Child == nil {
 		root.Path = Path
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
+		root.NodeType = nodeType
 		root.Child = nil
 		root.Control = control
 		root.middleware = middleware
-
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		router.Debug(l)
 		return
@@ -235,6 +234,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 		root.middleware = middleware
 		root.FullPath = path
 		root.Count = strings.Count(path, "/")
+		root.NodeType = nodeType
 		l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 		router.Debug(l)
 		return
@@ -285,6 +285,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					Path:       c,
 					FullPath:   path,
 					Count:      strings.Count(path, "/"),
+					NodeType:   nodeType,
 					middleware: middleware,
 					Control:    control,
 					Child:      nil,
@@ -332,6 +333,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					&node{
 						Path:       c,
 						FullPath:   root.FullPath,
+						NodeType:   root.NodeType,
 						Count:      root.Count,
 						Child:      tempChild,
 						middleware: root.middleware,
@@ -341,6 +343,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 				root.Path = root.Path[:i] //修改当前节点为添加的路径，（被添加结点刚好是父节点）
 				root.FullPath = path
 				root.Count = strings.Count(path, "/")
+				root.NodeType = nodeType
 				root.Control = control       //更改当前处理函数
 				root.middleware = middleware //更改当前中间件
 				l = fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
@@ -361,11 +364,15 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 // Path: 根合并相关参数
 // fun: 根合并相关参数
 func (router *Router) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...web.Middleware) bool {
+	var nodeType int
 	//处理反射
 	vf := reflect.ValueOf(fun)
 	vt := reflect.TypeOf(fun)
 	control := &Controller{Fun: vf, FunType: vt, Intrinsic: router.Intrinsic}
 	control.InitArgs()
+	if strings.Contains(path, "{") {
+		nodeType = RESTFulType
+	}
 	pub := router.findPublicRoot(method, root.Path, Path, path) //公共路径
 	if pub != "" {
 		pl := len(pub)
@@ -385,9 +392,9 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 			root.Child = make([]*node, 0) //重新分配
 			root.Child = append(root.Child,
 				&node{
-					Path:     ch1,
-					FullPath: root.FullPath,
-
+					Path:       ch1,
+					FullPath:   root.FullPath,
+					NodeType:   root.NodeType,
 					Count:      root.Count,
 					Child:      chChild,
 					middleware: root.middleware,
@@ -425,6 +432,7 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 				Path:       ch2,
 				FullPath:   path,
 				Count:      strings.Count(path, "/"),
+				NodeType:   nodeType,
 				Child:      nil,
 				middleware: middleware,
 				Control:    control,
@@ -439,6 +447,7 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 				root.FullPath = path
 				root.middleware = middleware
 				root.Count = strings.Count(path, "/")
+				root.NodeType = nodeType
 				l := fmt.Sprintf("%-6s  %-10s   %-10s", method, path, getFunName(vf.Interface()))
 				router.Debug(l)
 			}
@@ -505,7 +514,8 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 	if router.isStatic(path, rw, req) {
 		return nil, nil, nil, nil
 	}
-	if index := strings.Index(path, "."); index != -1 {
+	if index := strings.LastIndex(path, "."); index != -1 {
+		// 通过 isStatic 静态资源校验，如果是资源请求，重定向到资源服务接口
 		path = router.FileService
 	}
 	//查找指定的Method树
@@ -524,22 +534,27 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 // 路由树查询
 func (router *Router) bfs(root *node, path string) (*node, []string, map[string]any) {
 	var next *element
-	reqCount := strings.Count(path, "/")
+	var n *node
 	q := queue{}
 	q.en(root)
+walk:
 	next = q.next()
 	for next != nil {
-		n := next.value
-		if n.Control != nil && reqCount == n.Count {
-			if !strings.Contains(n.FullPath, "{") {
+		n = next.value
+		if n.Control != nil {
+			switch n.NodeType {
+			case DefaultType:
 				if path == n.FullPath {
 					return n, nil, nil
 				}
-			} else {
-				//urlArgs, Aargs := analysisRESTFul(n, path)
-				urlArgs, Aargs := RESTFul(n, path)
-				if urlArgs != nil {
-					return n, urlArgs, Aargs
+			default:
+				// reqCount 数量统计核心区分RESTFul子路径
+				reqCount := strings.Count(path, "/")
+				if reqCount == n.Count {
+					urlArgs, args := RESTFul(n, path)
+					if urlArgs != nil {
+						return n, urlArgs, args
+					}
 				}
 			}
 		}
@@ -549,7 +564,7 @@ func (router *Router) bfs(root *node, path string) (*node, []string, map[string]
 				q.en(child[i])
 			}
 		}
-		next = q.next()
+		goto walk
 	}
 	return nil, nil, nil
 }

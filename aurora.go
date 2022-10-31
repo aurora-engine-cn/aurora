@@ -25,7 +25,7 @@ const (
 	yaml = "application.yaml"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.2)           |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.5)           |"
 
 type Engine struct {
 	// 日志
@@ -184,6 +184,11 @@ func (engine *Engine) Use(Configuration ...any) {
 		opt = useControl(u)
 		engine.options = append(engine.options, opt)
 	}
+}
+
+// Constraint 参数验证器
+func (engine *Engine) Constraint(tag string, verify web.Verify) {
+	engine.router.Constraint(tag, verify)
 }
 
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的

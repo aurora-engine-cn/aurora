@@ -1,7 +1,6 @@
 package route
 
 import (
-	"github.com/sirupsen/logrus"
 	"testing"
 )
 
@@ -32,10 +31,26 @@ func BenchmarkRESTFul2(b *testing.B) {
 	}
 }
 
-func BenchmarkRouter(b *testing.B) {
-	router := New()
-	router.Log = logrus.New()
+func BenchmarkCount(b *testing.B) {
 	for i := 0; i < b.N; i++ {
+		If(1)
+	}
+}
+
+func BenchmarkCountChar(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Switch(1)
+	}
+}
+
+func If(t int) {
+	if t == 1 {
+
+	}
+}
+func Switch(t int) {
+	switch t {
+	case 1:
 
 	}
 }
