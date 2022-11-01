@@ -7,6 +7,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -142,37 +143,41 @@ func stringData(proxy *Proxy, value string) {
 
 func otherData(proxy *Proxy, value reflect.Value) {
 	of := value.Type()
+	var marshal []byte
+	var err error
 	var v = value.Interface()
 	switch v.(type) {
 	case error:
 		proxy.catchError(of, value)
 		return
-
-	case int, float64, bool:
-
+	case int:
+		marshal = []byte(strconv.Itoa(v.(int)))
+	case float64:
+		marshal = []byte(strconv.FormatFloat(v.(float64), 'f', -1, 64))
+	case bool:
+		strconv.FormatBool(v.(bool))
 	default:
-		marshal, err := jsoniter.Marshal(value.Interface())
+		marshal, err = jsoniter.Marshal(v)
 		ErrorMsg(err)
-		proxy.Rew.Write(marshal)
 	}
+	proxy.Rew.Write(marshal)
 }
 
 func anyData(proxy *Proxy, value reflect.Value) {
 	valuer := value.Elem()
 	of := value.Type()
 	var marshal []byte
+	var err error
 	var v = valuer.Interface()
 	switch v.(type) {
 	case error:
 		proxy.catchError(of, value)
 	case string:
-		//对字符串不仅处理
+		//对字符串不做处理
 		marshal = []byte(v.(string))
 	default:
-		s, err := jsoniter.Marshal(v)
+		marshal, err = jsoniter.Marshal(v)
 		ErrorMsg(err)
-		marshal = s
-		proxy.Rew.Write(marshal)
-		return
 	}
+	proxy.Rew.Write(marshal)
 }
