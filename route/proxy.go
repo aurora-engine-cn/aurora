@@ -155,7 +155,7 @@ func otherData(proxy *Proxy, value reflect.Value) {
 	case float64:
 		marshal = []byte(strconv.FormatFloat(v.(float64), 'f', -1, 64))
 	case bool:
-		strconv.FormatBool(v.(bool))
+		marshal = []byte(strconv.FormatBool(v.(bool)))
 	default:
 		marshal, err = jsoniter.Marshal(v)
 		ErrorMsg(err)
@@ -175,9 +175,23 @@ func anyData(proxy *Proxy, value reflect.Value) {
 	case string:
 		//对字符串不做处理
 		marshal = []byte(v.(string))
+	case int:
+		marshal = []byte(strconv.Itoa(v.(int)))
+	case float64:
+		marshal = []byte(strconv.FormatFloat(v.(float64), 'f', -1, 64))
+	case bool:
+		marshal = []byte(strconv.FormatBool(v.(bool)))
 	default:
 		marshal, err = jsoniter.Marshal(v)
 		ErrorMsg(err)
 	}
 	proxy.Rew.Write(marshal)
+}
+
+func structHandle(value any) []byte {
+	marshal, err := jsoniter.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	return marshal
 }
