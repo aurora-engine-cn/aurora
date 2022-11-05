@@ -118,11 +118,11 @@ func NewEngine() *Engine {
 	engine.Log = logs //初始化日志
 	engine.printBanner()
 	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
-
 	// 初始化 Use 配置
 	key := ""
 	var middleware web.Middleware
 	var constructors web.Constructor
+	var Recover web.Recover
 	// 中间件配置项
 	key = core.TypeKey(middleware)
 	engine.use[key] = useMiddleware
@@ -138,6 +138,9 @@ func NewEngine() *Engine {
 	// server
 	key = core.TypeKey(&http.Server{})
 	engine.use[key] = useServe
+	// Recover
+	key = core.TypeKey(Recover)
+	engine.use[key] = useRecover
 
 	// 初始化系统参数
 	if engine.intrinsic == nil {
@@ -159,6 +162,7 @@ func NewEngine() *Engine {
 // NewRoute 创建并初始化 Router
 func NewRoute(engine *Engine) *route.Router {
 	router := route.New()
+	router.Recover(web.ErrRecover)
 	router.MaxMultipartMemory = engine.MaxMultipartMemory
 	router.Intrinsic = engine.intrinsic
 	router.Log = engine.Log

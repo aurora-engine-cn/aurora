@@ -28,13 +28,13 @@ type Proxy struct {
 	UrlVariable []string            // RESTFul  顺序值
 	RESTFul     map[string]any      // RESTFul  K/V值
 	view        ViewHandle          // 支持自定义视图渲染机制
-	Recover     WebRecover          // 路由错误捕捉器
+	Recover     web.Recover         // 路由错误捕捉器
 }
 
 // start 路由查询入口
 func (proxy *Proxy) start() {
 	//defer 处理在执行接口期间的一切 panic处理
-	defer proxy.Recover(proxy)
+	defer proxy.Recover(proxy.Rew)
 	//存储error类型 用于catch捕捉
 	proxy.errType = errImp
 	c := proxy.Control
