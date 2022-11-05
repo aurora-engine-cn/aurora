@@ -71,6 +71,7 @@ const (
 // Router Aurora 核心路由器
 type Router struct {
 	web.Log
+	Recovers           web.Recover
 	MaxMultipartMemory int64
 	Root               string                       // 项目更目录
 	Resource           string                       // 静态资源管理 默认为 root 目录
@@ -140,8 +141,13 @@ func (router *Router) Cache(method string, url string, control any, middleware .
 	}
 }
 
+// Constraint 自定义约束注册
 func (router *Router) Constraint(tag string, verify web.Verify) {
 	router.Constraints[tag] = verify
+}
+
+func (router *Router) Recover(webRecover web.Recover) {
+	router.Recovers = webRecover
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -590,7 +596,7 @@ func (router *Router) handle(c *node, u []string, args map[string]any, rw http.R
 	proxy.UrlVariable = u
 	proxy.RESTFul = args
 	proxy.view = View
-	proxy.Recover = errRecover
+	proxy.Recover = router.Recovers
 	proxy.start()
 	router.ProxyPool.Put(proxy)
 }

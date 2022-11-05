@@ -27,7 +27,7 @@ func New() *Cors {
 }
 
 type Cors struct {
-	Method           map[string][]string //运行跨域的 api
+	Method           map[string][]string //运行跨域的 HTTP请求类型
 	Host             map[string][]string //允许跨域的主机
 	AllowOrigin      []string
 	AllowMethods     []string
@@ -126,6 +126,5 @@ func (c *Cors) checkRequest(r *http.Request, w http.ResponseWriter) bool {
 			return false
 		}
 	}
-
 	return true
 }

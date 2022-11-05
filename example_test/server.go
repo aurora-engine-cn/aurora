@@ -1,8 +1,10 @@
 package example
 
 import (
-	"errors"
+	"fmt"
 	"gitee.com/aurora-engine/aurora"
+	"gitee.com/aurora-engine/aurora/web"
+	"net/http"
 	"net/http/pprof"
 )
 
@@ -16,15 +18,16 @@ type GetArgs struct {
 	Age  int    `constraint:"check"`
 }
 
-func (server *Server) Server() {
-	// 进行一下初始化操作，比如 控制器实例，全局中间件，全局变量，第三方依赖库等操作
-
-	server.Constraint("check", func(value any) error {
-		if value.(int) <= 0 {
-			return errors.New("error value is 0")
+func Recover() web.Recover {
+	return func(w http.ResponseWriter) {
+		if err := recover(); err != nil {
+			fmt.Println(err)
 		}
-		return nil
-	})
+	}
+}
+
+func (server *Server) Server() {
+	server.Use(Recover())
 }
 
 func (server *Server) Router() {

@@ -280,7 +280,7 @@ func (control *Controller) check(value reflect.Value) (bool, error) {
 					if ConstraintFunc, flag := control.Constraints[tagKey]; flag {
 						err := ConstraintFunc(value.Field(i).Interface())
 						if err != nil {
-							return false, err
+							return false, fmt.Errorf("the '%s' controller in '%s.%s' constraint check failed. %s", control.FunType.String(), control.InvokeValues[i].Type().String(), field.Name, err.Error())
 						}
 					}
 				}

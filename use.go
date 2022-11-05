@@ -64,6 +64,14 @@ func useServe(server any) useOption {
 	}
 }
 
+func useRecover(Recover any) useOption {
+	return func(engine *Engine) {
+		if recovers, b := Recover.(web.Recover); b {
+			engine.router.Recover(recovers)
+		}
+	}
+}
+
 // useComponent 添加到容器
 func useComponent(component any) useOption {
 	return func(engine *Engine) {
