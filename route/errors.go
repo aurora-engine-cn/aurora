@@ -2,40 +2,10 @@ package route
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"log"
-	"net/http"
 	"reflect"
-	"runtime/debug"
 	"strings"
 )
-
-// WebRecover 用于处理服务器中出现的 panic 消息自定义
-type WebRecover func(proxy *Proxy)
-
-// Aurora 全局错误 panic 处理
-func errRecover(proxy *Proxy) {
-	rew := proxy.Rew
-	if v := recover(); v != nil {
-		var msg string
-		switch v.(type) {
-		case error:
-			msg = v.(error).Error()
-		case string:
-			msg = v.(string)
-		default:
-			marshal, err := jsoniter.Marshal(v)
-			if err != nil {
-				msg = err.Error()
-			}
-			msg = string(marshal)
-		}
-		proxy.Error(msg)
-		debug.PrintStack()
-		http.Error(rew, msg, 500)
-		return
-	}
-}
 
 func ErrorMsg(err error, msg ...string) {
 	if err != nil {
