@@ -45,6 +45,15 @@ type DataType func(value reflect.Value, data any) error
 // value : 定义了对应该类型的解析逻辑
 var BaseType map[string]DataType
 
+// ValueType 对外提供添加 自定义数据类型解析支持
+// key 需要通过 TypeKey 函数获取一个全局唯一的标识符
+// dataType 需要提供 对应数据解析逻辑细节可以参考 AuroraQueuePointerType 或者 AuroraStackPointerType
+func ValueType(key string, dataType DataType) {
+	if _, b := BaseType[key]; !b {
+		BaseType[key] = dataType
+	}
+}
+
 // TypeKey 通过反射得到一个类型的类型字符串, 适用于普通类型
 func TypeKey(t any) string {
 	typeOf := reflect.TypeOf(t)
