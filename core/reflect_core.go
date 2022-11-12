@@ -157,9 +157,14 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 				if name, b := FieldName[k]; b {
 					field = arguments.FieldByName(name)
 				} else {
-					//此处如果没有找到对应的字段名称，说明传递的json参数无法解析注入到 参数列表中
-					//直接给前端返回错误提示，或者输出日志,此处直接日志返回，执行到具体处理器上参数将为零值
-					return nil
+					// 此处如果没有找到对应的字段名称，说明传递的json参数无法解析注入到 参数列表中
+					// 此处可以选择：
+					//		1.直接给前端返回错误提示.
+					//		2.直接返回 nil 剩余的数据也就无法初始化
+					// 		3.输出日志并继续执行，执行到具体处理器上为初始化的参数将为零值
+					//		4.不做任何处理 跳过下一个字段处理
+					// 在此选择跳过不做任何处理
+					continue
 				}
 			} else {
 				//校验结构体失败此处要么返回错误要么 panic，或者 return 放弃这个字段的初始化，处理器将会接收到零值
@@ -168,7 +173,6 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 			if field.Type() == nil || v == nil || !field.CanSet() { //v == nil 防止下面的 switch 走到 default中的 case reflect.Ptr 造成栈溢出
 				continue
 			}
-
 			switch v.(type) {
 			case map[string]interface{}:
 				//处理结构体类型字段
@@ -364,7 +368,7 @@ func AssignmentMap(arguments reflect.Value, value map[string]interface{}) error 
 	//检测 map存储的具体类型
 	case reflect.Interface:
 		//检测操map 存储value类型为接口，json解码的map刚好对应，所以可以直接通过反射赋值
-		if t.Elem().Kind().String() == "interface" {
+		if t.Elem().Kind() == reflect.Interface {
 			for k, v := range value {
 				key := reflect.New(t.Key()).Elem()
 				if err := Assignment(key, k); err != nil {

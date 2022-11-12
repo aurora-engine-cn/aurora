@@ -14,7 +14,7 @@ type Server struct {
 }
 
 type GetArgs struct {
-	Name string `empty:"false"`
+	Name string `empty:"false" value:""`
 	Age  int    `constraint:"check"`
 }
 
