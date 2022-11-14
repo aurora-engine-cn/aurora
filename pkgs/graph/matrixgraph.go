@@ -2,8 +2,8 @@ package graph
 
 import (
 	"fmt"
-	"gitee.com/aurora-engine/hutool/queue"
-	"gitee.com/aurora-engine/hutool/stack"
+	"gitee.com/aurora-engine/aurora/pkgs/queue"
+	"gitee.com/aurora-engine/aurora/pkgs/stack"
 )
 
 /*
@@ -31,7 +31,7 @@ func (receiver *MatrixGraph[T]) init() {
 
 // Point 向途中添加一个点属性
 func (receiver *MatrixGraph[T]) Point(id, name string, data T) {
-	point := &Point[T]{id, name, data, ""}
+	point := &Point[T]{Id: id, Name: name, DataInfo: data, JsonInfo: ""}
 	receiver.Add(point)
 }
 

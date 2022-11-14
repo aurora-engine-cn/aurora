@@ -1,8 +1,8 @@
 package list
 
 type List[T comparable] interface {
-	Add(...T)
+	Add(T)
 	Get(int) *T
-	Delete(int)
+	Remove(int)
 	Length() int
 }

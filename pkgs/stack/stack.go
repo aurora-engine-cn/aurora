@@ -2,7 +2,7 @@ package stack
 
 import "sync"
 
-type Stack[T comparable] struct {
+type Stack[T any] struct {
 	top  *node[T]
 	mx   sync.Mutex
 	size int

@@ -2,15 +2,15 @@ package examples
 
 import (
 	"fmt"
-	"gitee.com/aurora-engine/pkgs/list"
+	"gitee.com/aurora-engine/aurora/pkgs/list"
 	"testing"
 )
 
-func TestLinkList_Add(t *testing.T) {
-	l := list.LinkList[int]{}
-	l.Add(0)
-	l.Add(1)
-	fmt.Println(l.Get(0))
-	fmt.Println(l.Get(1))
-	fmt.Println(l.Get(2))
+func TestList(t *testing.T) {
+	l := list.ArrayList[int]{1, 2, 3}
+	for _, v := range l {
+		fmt.Println(v)
+	}
+	l.Remove(0)
+	t.Log(l)
 }

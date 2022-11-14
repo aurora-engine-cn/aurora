@@ -3,11 +3,12 @@ package orm_examples
 import (
 	"database/sql"
 	"fmt"
-	"gitee.com/aurora-engine/pkgs/list"
+	"gitee.com/aurora-engine/aurora/orm"
+	"gitee.com/aurora-engine/aurora/orm/sqlbuild"
+	"gitee.com/aurora-engine/aurora/pkgs/list"
 	"github.com/druidcaesa/ztool"
 	_ "github.com/go-sql-driver/mysql"
-	"orm"
-	"orm/sqlbuild"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -163,4 +164,30 @@ func TestMapping_Delete(t *testing.T) {
 	}
 	d := m.Delete(value)
 	fmt.Println(d)
+}
+
+func TestFunc(t *testing.T) {
+	// 实现 函数逻辑
+	swap := func(in []reflect.Value) []reflect.Value {
+		return []reflect.Value{in[1], in[0]}
+	}
+
+	// 创建函数
+	makeSwap := func(fptr any) {
+		fn := reflect.ValueOf(fptr).Elem()
+		// Make a function of the right type.
+		v := reflect.MakeFunc(fn.Type(), swap)
+		// Assign it to the value fn represents.
+		fn.Set(v)
+	}
+
+	// Make and call a swap function for ints.
+	var intSwap func(int, int) (int, int)
+	makeSwap(&intSwap)
+	fmt.Println(intSwap(0, 1))
+
+	// Make and call a swap function for float64s.
+	var floatSwap func(float64, float64) (float64, float64)
+	makeSwap(&floatSwap)
+	fmt.Println(floatSwap(2.72, 3.14))
 }

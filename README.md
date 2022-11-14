@@ -15,32 +15,29 @@ go1.19
 
 ## 快速开始
 
-创建一个结构体，嵌套一个 `*aurora.Engine` 实例 完成对服务器的创建
+## 导入
+```go
+import (
+    "gitee.com/aurora-engine/aurora"
+)
+
+```
+
+创建一个结构体，嵌套一个匿名`*aurora.Engine` 实例 完成对服务器的创建
 ```go
 // Server 嵌套Aurora定义一个服务 实例
 type Server struct {
     *aurora.Engine
 }
 ```
-实现 `aurora.Application` 接口中的两个方法, 接口定义如下,除了`Server()` 和 `Router()` 其他方法均由 `*aurora.Aurora` 实现了
-```go
-type Application interface {
-	Use(...interface{})
-	Server()
-	ioc()
-    Router()
-	run() error
-}
-```
-开始实现接口
+实现 `aurora.Application` 接口中的两个方法,`Server()` 和 `Router()`
 ```go
 func (server *Server) Server() {
 	// 进行一下初始化操作，比如 控制器实例，全局中间件，全局变量，第三方依赖库等操作
 }
 
 func (server *Server) Router() {
-	// 添加 web 路由
-
+	// 添加 app 路由
 	server.Get("/", func() string {
 		return "hello world"
 	})
@@ -57,7 +54,7 @@ if err != nil {
 ```
 
 ## 文档
-有关更多的使用操作请查看 [最新在线文档](https://go-aurora-engine.github.io/)
+有关更多的使用操作请查看 [最新在线文档](https://go-aurora-engine.github.io)
 
 ## 关于作者
 

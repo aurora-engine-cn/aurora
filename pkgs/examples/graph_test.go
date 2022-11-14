@@ -1,7 +1,7 @@
 package examples
 
 import (
-	"gitee.com/aurora-engine/pkgs/graph"
+	"gitee.com/aurora-engine/aurora/pkgs/graph"
 	"testing"
 )
 

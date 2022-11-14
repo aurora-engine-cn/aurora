@@ -2,8 +2,8 @@ package orm
 
 import (
 	"fmt"
+	"gitee.com/aurora-engine/aurora/orm/sqlbuild"
 	"github.com/druidcaesa/ztool"
-	"orm/sqlbuild"
 	"reflect"
 	"time"
 )

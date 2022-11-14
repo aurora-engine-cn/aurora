@@ -1,20 +1,21 @@
 package aurora
 
 import (
+	"gitee.com/aurora-engine/aurora/web"
 	"net/http"
 )
 
 // UseOption 配置项 对 *Aurora 的指定属性进行 配置
-type UseOption func(engine *Engine)
+type useOption func(engine *Engine)
 
-type UseConfiguration func(interface{}) UseOption
+type useConfiguration func(interface{}) useOption
 
 // useController Use的 处理器注册
-func useConstructors(control interface{}) UseOption {
+func useConstructors(control any) useOption {
 	return func(engine *Engine) {
-		if constructors, b := control.(Constructors); b {
+		if constructors, b := control.(web.Constructor); b {
 			if engine.build == nil {
-				engine.build = make([]Constructors, 0)
+				engine.build = make([]web.Constructor, 0)
 			}
 			engine.build = append(engine.build, constructors)
 		}
@@ -22,31 +23,34 @@ func useConstructors(control interface{}) UseOption {
 }
 
 // useControl
-func useControl(control interface{}) UseOption {
+func useControl(control any) useOption {
 	return func(a *Engine) {
-		a.control(control)
-	}
-}
-
-// useMiddleware Use的中间件注册
-func useMiddleware(middleware interface{}) UseOption {
-	return func(engine *Engine) {
-		if m, b := middleware.(Middleware); !b {
-			return
-		} else {
-			engine.router.use(m)
+		err := a.space.Put("", control)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
 
-func useLogrus(log interface{}) UseOption {
+// useMiddleware Use 的中间件注册
+func useMiddleware(middleware any) useOption {
 	return func(engine *Engine) {
-		engine.Log = log.(Log)
+		if m, b := middleware.(web.Middleware); !b {
+			return
+		} else {
+			engine.router.Use(m)
+		}
+	}
+}
+
+func useLogrus(log any) useOption {
+	return func(engine *Engine) {
+		engine.Log = log.(web.Log)
 	}
 }
 
 // useServe 使用自定义的 serve 实例
-func useServe(server interface{}) UseOption {
+func useServe(server any) useOption {
 	return func(engine *Engine) {
 		if server == nil {
 			return
@@ -60,25 +64,20 @@ func useServe(server interface{}) UseOption {
 	}
 }
 
-// useContentType 使用静态资源头
-func useContentType(contentType interface{}) UseOption {
-	return func(a *Engine) {
-		if contentTypes, b := contentType.(ContentType); !b {
-			return
-		} else {
-			for k, v := range contentTypes {
-				a.resourceMapType[k] = v
-			}
+func useRecover(Recover any) useOption {
+	return func(engine *Engine) {
+		if recovers, b := Recover.(web.Recover); b {
+			engine.router.Recover(recovers)
 		}
 	}
 }
 
 // useComponent 添加到容器
-func useComponent(component interface{}) UseOption {
+func useComponent(component any) useOption {
 	return func(engine *Engine) {
-		if c, b := component.(Component); b {
+		if c, b := component.(web.Component); b {
 			if engine.components == nil {
-				engine.components = make([]Component, 0)
+				engine.components = make([]web.Component, 0)
 				engine.components = append(engine.components, c)
 				return
 			}
@@ -88,12 +87,12 @@ func useComponent(component interface{}) UseOption {
 }
 
 // useConfig 使用自定义viper配置
-func useConfig(component interface{}) UseOption {
+func useConfig(component any) useOption {
 	return func(engine *Engine) {
 		if component == nil {
 			return
 		}
-		if config, b := component.(Config); b {
+		if config, b := component.(web.Config); b {
 			engine.config = config
 		}
 	}
