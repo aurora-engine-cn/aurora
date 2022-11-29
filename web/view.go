@@ -1,19 +1,26 @@
 package web
 
 import (
+	"embed"
 	"html/template"
 	"net/http"
 )
 
 // ViewHandle 是整个服务器对视图渲染的核心函数,开发者实现改接口对需要展示的页面进行自定义处理
-type ViewHandle func(string, http.ResponseWriter, Context)
+type ViewHandle func(string, string, embed.FS, http.ResponseWriter, Context)
 
-func View(html string, rew http.ResponseWriter, data Context) {
-	parseFiles, err := template.ParseFiles(html)
+func View(fullPath, relative string, static embed.FS, rew http.ResponseWriter, data Context) {
+	var html *template.Template
+	var err error
+	if static != (embed.FS{}) {
+		html, err = template.ParseFS(static, relative)
+	} else {
+		html, err = template.ParseFiles(fullPath)
+	}
 	if err != nil {
 		panic(err)
 	}
-	err = parseFiles.Execute(rew, data)
+	err = html.Execute(rew, data)
 	if err != nil {
 		panic(err)
 	}

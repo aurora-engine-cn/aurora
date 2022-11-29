@@ -1,11 +1,11 @@
 package route
 
 import (
-	"bytes"
 	"gitee.com/aurora-engine/aurora/utils/stringutils"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,7 +27,7 @@ type Proxy struct {
 	values      []reflect.Value     // 处理器返回值
 	UrlVariable []string            // RESTFul  顺序值
 	RESTFul     map[string]any      // RESTFul  K/V值
-	view        ViewHandle          // 支持自定义视图渲染机制
+	view        web.ViewHandle      // 支持自定义视图渲染机制
 	Recover     web.Recover         // 路由错误捕捉器
 }
 
@@ -112,22 +112,13 @@ func (proxy *Proxy) catchError(errType reflect.Type, errValue reflect.Value) {
 // 接口返回string类型处理函数
 func stringData(proxy *Proxy, value string) {
 	if strings.HasSuffix(value, ".html") {
-		HtmlPath := proxy.PathPool.Get().(*bytes.Buffer)
 		if value[:1] == "/" {
 			value = value[1:]
 		}
-		//拼接项目路径
-		HtmlPath.WriteString(proxy.Root)
-		//拼接 静态资源路径 默认情况下为 '/'
-		HtmlPath.WriteString(proxy.Resource)
-		//拼接 资源真实路径
-		HtmlPath.WriteString(value)
-		//得到完整 html 页面资源path
-		html := HtmlPath.String()
-		HtmlPath.Reset() //清空buffer，以便下次利用
-		proxy.PathPool.Put(HtmlPath)
+		fullpath := filepath.Join(proxy.Root, proxy.Resource, value)
+		relative := filepath.Join(proxy.Resource, value)
 		proxy.Rew.Header().Set(contentType, ResourceMapType[".html"])
-		proxy.view(html, proxy.Rew, proxy.Context) //视图解析 响应 html 页面
+		proxy.view(fullpath, relative, proxy.staticSF, proxy.Rew, proxy.Context) //视图解析 响应 html 页面
 		return
 	}
 	//处理转发，重定向本质重新走一边路由，找到对应处理的方法

@@ -1,11 +1,10 @@
 package route
 
 import (
-	"bytes"
+	"embed"
 	"errors"
 	"fmt"
 	"gitee.com/aurora-engine/aurora/web"
-	"html/template"
 	"net/http"
 	"os"
 	"reflect"
@@ -75,15 +74,15 @@ type Router struct {
 	MaxMultipartMemory int64
 	Root               string                       // 项目更目录
 	Resource           string                       // 静态资源管理 默认为 root 目录
+	staticSF           embed.FS                     // 静态资源
 	FileService        string                       // 文件服务配置
 	ProxyPool          *sync.Pool                   // 创建执行实例
-	PathPool           *sync.Pool                   // 分配路径构建
 	Catches            map[reflect.Type]Catch       // 全局错误捕捉处理
 	Api                map[string][]web.ControlInfo // 接口信息
 	Constraints        map[string]web.Verify
 	Middlewares        []web.Middleware       // 全局中间件
 	Controllers        []*reflect.Value       // 存储结构体全局控制器
-	DefaultView        web.ViewHandle         // 默认视图处理器，初始化采用 Aurora 实现的函数进行渲染
+	DefaultView        web.ViewHandle         // 默认视图处理器，初始化采用 web包 的函数进行渲染
 	Intrinsic          map[string]web.Variate // 自定义系统参 初始化来自 Engine
 	config             web.Config             // 配置实例，读取配置文件
 	Tree               map[string]*node       // 路由树根节点
@@ -95,11 +94,6 @@ func New() *Router {
 	router.ProxyPool = &sync.Pool{
 		New: func() any {
 			return &Proxy{}
-		},
-	}
-	router.PathPool = &sync.Pool{
-		New: func() any {
-			return &bytes.Buffer{}
 		},
 	}
 	router.Mux = &sync.Mutex{}
@@ -148,6 +142,10 @@ func (router *Router) Constraint(tag string, verify web.Verify) {
 
 func (router *Router) Recover(webRecover web.Recover) {
 	router.Recovers = webRecover
+}
+
+func (router *Router) Static(fs embed.FS) {
+	router.staticSF = fs
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -595,7 +593,7 @@ func (router *Router) handle(c *node, u []string, args map[string]any, rw http.R
 	proxy.Middleware = c.middleware
 	proxy.UrlVariable = u
 	proxy.RESTFul = args
-	proxy.view = View
+	proxy.view = web.View
 	proxy.Recover = router.Recovers
 	proxy.start()
 	router.ProxyPool.Put(proxy)
@@ -771,11 +769,4 @@ func (router *Router) isStatic(path string, rw http.ResponseWriter, req *http.Re
 		return true
 	}
 	return false
-}
-
-func View(html string, rew http.ResponseWriter, data web.Context) {
-	parseFiles, err := template.ParseFiles(html)
-	ErrorMsg(err)
-	err = parseFiles.Execute(rew, data)
-	ErrorMsg(err)
 }
