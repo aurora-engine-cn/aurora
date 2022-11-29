@@ -2,13 +2,11 @@ package route
 
 import (
 	"bytes"
-	"gitee.com/aurora-engine/aurora/web"
+	"embed"
 	"github.com/spf13/viper"
-	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -51,13 +49,15 @@ func init() {
 	ResourceMapType = s
 }
 
-// ViewHandle 是整个服务器对视图渲染的核心函数,开发者实现改接口对需要展示的页面进行自定义处理
-type ViewHandle func(string, http.ResponseWriter, web.Context)
-
 // ResourceFun w 响应体，path 资源真实路径，rt资源类型
 // 根据rt资源类型去找到对应的resourceMapType 存储的响应头，进行发送资源
 func (router *Router) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
-	data := router.readResource(router.Root + router.Resource + path)
+	var data []byte
+	if router.staticSF != (embed.FS{}) {
+		data, _ = router.staticSF.ReadFile(router.Resource + path)
+	} else {
+		data = router.readResource(router.Root + router.Resource + path)
+	}
 	if data != nil {
 		h := w.Header()
 		if h.Get(contentType) == "" {
@@ -95,27 +95,28 @@ func (router *Router) readResource(path string) []byte {
 
 func (router *Router) resourceHandler(w http.ResponseWriter, req *http.Request, mapping, t string) {
 	if mapping == favicon {
-		ico := ""
-		r := router.Resource
-		if len(r) > 0 {
-			r = r[:len(r)-1]
-		}
-		//检查 静态资源路径是否存在
-		if pathExists(router.Root + r) {
-			//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
-			filepath.Walk(router.Root+r, func(path string, info fs.FileInfo, err error) error {
-				if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
-					ico = path
-				}
-				return nil
-			})
-			if ico == "" {
-				return
-			}
-			resource := router.readResource(ico)
-			w.Header().Set(contentType, ResourceMapType[t])
-			w.Write(resource)
-		}
+		//ico := ""
+		//r := router.Resource
+		//if len(r) > 0 {
+		//	r = r[:len(r)-1]
+		//}
+		////检查 静态资源路径是否存在
+		//if pathExists(router.Root + r) {
+		//	//在静态资源目录下查找是否存有 favicon ,资源目录不存在的情况下会发生panic的日志打印，服务不会挂
+		//	filepath.Walk(router.Root+r, func(path string, info fs.FileInfo, err error) error {
+		//		if !info.IsDir() && (strings.HasSuffix(path, favicon)) && ico == "" {
+		//			ico = path
+		//		}
+		//		return nil
+		//	})
+		//	if ico == "" {
+		//		return
+		//	}
+		//	resource := router.readResource(ico)
+		//	w.Header().Set(contentType, ResourceMapType[t])
+		//	w.Write(resource)
+		//}
+		router.resourceFun(w, mapping, mapping, t)
 		return
 	}
 	resourceUrl := req.Header.Get("Referer")

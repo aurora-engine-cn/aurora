@@ -80,11 +80,11 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 	// values 主要用来操作结构体字段
 	var values, fieldValue reflect.Value
 	// 检擦 value 是否为指针
-	if value.Kind() == reflect.Ptr {
+	if value.Kind() == reflect.Pointer {
 		// 我们需要 操作指向的值进行初始化
 		values = value.Elem()
 		//需要检擦 指向的值是否为结构体，存在双重指针或者多级指针的 视为无效属性
-		if values.Kind() == reflect.Ptr {
+		if values.Kind() == reflect.Pointer {
 			return errors.New("invalid parameter, there is a double pointer or a multi-level pointer")
 		}
 	} else {
@@ -97,7 +97,7 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 		fieldType := values.Type().Field(j)
 		// 获取字段类型的类别
 		kind := fieldType.Type.Kind()
-		if kind == reflect.Ptr {
+		if kind == reflect.Pointer {
 			kind = fieldType.Type.Elem().Kind()
 		}
 		if !fieldValue.CanSet() || kind != reflect.Struct || !fieldValue.IsZero() {
