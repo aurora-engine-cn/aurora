@@ -81,6 +81,7 @@ type Engine struct {
 	// 配置实例，读取配置文件
 	config web.Config
 
+	// embed 注解加载的配置文件，configFile 被初始化则不会扫描 根路径下的配置文件和自定义配置文件
 	configFile []byte
 
 	// go app 原生服务器

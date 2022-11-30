@@ -70,23 +70,23 @@ const (
 // Router Aurora 核心路由器
 type Router struct {
 	web.Log
-	Recovers           web.Recover
-	MaxMultipartMemory int64
+	Recovers           web.Recover                  // 错误捕捉
+	MaxMultipartMemory int64                        // 文件上传大小
 	Root               string                       // 项目更目录
 	Resource           string                       // 静态资源管理 默认为 root 目录
-	staticSF           embed.FS                     // 静态资源
+	staticSF           embed.FS                     // 静态资源 embed 注解加载
 	FileService        string                       // 文件服务配置
 	ProxyPool          *sync.Pool                   // 创建执行实例
 	Catches            map[reflect.Type]Catch       // 全局错误捕捉处理
 	Api                map[string][]web.ControlInfo // 接口信息
-	Constraints        map[string]web.Verify
-	Middlewares        []web.Middleware       // 全局中间件
-	Controllers        []*reflect.Value       // 存储结构体全局控制器
-	DefaultView        web.ViewHandle         // 默认视图处理器，初始化采用 web包 的函数进行渲染
-	Intrinsic          map[string]web.Variate // 自定义系统参 初始化来自 Engine
-	config             web.Config             // 配置实例，读取配置文件
-	Tree               map[string]*node       // 路由树根节点
-	Mux                *sync.Mutex            // 注册路由并发锁
+	Constraints        map[string]web.Verify        // 自定义参数校验器
+	Middlewares        []web.Middleware             // 全局中间件
+	Controllers        []*reflect.Value             // 存储结构体全局控制器
+	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 web包 的函数进行渲染
+	Intrinsic          map[string]web.Variate       // 自定义系统参 初始化来自 Engine
+	config             web.Config                   // 配置实例，读取配置文件
+	Tree               map[string]*node             // 路由树根节点
+	Mux                *sync.Mutex                  // 注册路由并发锁
 }
 
 func New() *Router {
