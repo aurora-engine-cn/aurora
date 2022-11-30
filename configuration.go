@@ -28,6 +28,7 @@ func Config(config web.Config) Option {
 	}
 }
 
+// LoadConfig 加载配置文件数据
 func LoadConfig(cnf []byte) Option {
 	return func(engine *Engine) {
 		engine.configFile = cnf
