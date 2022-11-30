@@ -34,12 +34,6 @@ func LoadConfig(cnf []byte) Option {
 	}
 }
 
-func Static(fs embed.FS) Option {
-	return func(engine *Engine) {
-		engine.router.Static(fs)
-	}
-}
-
 // Debug 开启debug日志
 func Debug() Option {
 	return func(a *Engine) {
@@ -48,5 +42,12 @@ func Debug() Option {
 			l := of.Interface()
 			l.(*logrus.Logger).SetLevel(logrus.DebugLevel)
 		}
+	}
+}
+
+// Static web 静态资源配置
+func Static(fs embed.FS) Option {
+	return func(engine *Engine) {
+		engine.router.Static(fs)
 	}
 }

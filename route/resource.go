@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -54,7 +55,9 @@ func init() {
 func (router *Router) resourceFun(w http.ResponseWriter, mapping string, path string, rt string) {
 	var data []byte
 	if router.staticSF != (embed.FS{}) {
-		data, _ = router.staticSF.ReadFile(router.Resource + path)
+		relative := filepath.Join(router.Resource, path)
+		relative = filepath.ToSlash(relative)
+		data, _ = router.staticSF.ReadFile(relative)
 	} else {
 		data = router.readResource(router.Root + router.Resource + path)
 	}

@@ -91,13 +91,13 @@ type Engine struct {
 
 func New(option ...Option) *Engine {
 	engine := NewEngine()
+	// 加载配置文件
+	engine.viperConfig()
 	engine.router = NewRoute(engine)
 	// 执行配置项
 	for _, opt := range option {
 		opt(engine)
 	}
-	// 加载配置文件
-	engine.viperConfig()
 	return engine
 }
 
@@ -170,6 +170,9 @@ func NewRoute(engine *Engine) *route.Router {
 	router.MaxMultipartMemory = engine.MaxMultipartMemory
 	router.Intrinsic = engine.intrinsic
 	router.Log = engine.Log
+	router.Root = engine.projectRoot
+	router.Resource = engine.resource
+	router.FileService = engine.fileService
 	return router
 }
 
@@ -339,6 +342,7 @@ func (engine *Engine) viperConfig() {
 	}
 	// 没有扫描配置文件 优先读取 配置文件 字节切片
 	if engine.config == nil && engine.configFile != nil {
+		cnf.SetConfigType("yml")
 		err := cnf.ReadConfig(bytes.NewBuffer(engine.configFile))
 		ErrorMsg(err)
 		engine.config = cnf
@@ -373,12 +377,12 @@ func (engine *Engine) viperConfig() {
 		p := engine.config.GetString("aurora.resource")
 		// 构建路径拼接，此处在路径前后加上斜杠 用于静态资源的路径凭借方便
 		if p != "" {
-			if p[:1] != "/" {
-				p = "/" + p
-			}
-			if p[len(p)-1:] != "/" {
-				p = p + "/"
-			}
+			//if p[:1] != "/" {
+			//	p = "/" + p
+			//}
+			//if p[len(p)-1:] != "/" {
+			//	p = p + "/"
+			//}
 			engine.resource = p
 		}
 		// 读取文件服务配置

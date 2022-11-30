@@ -72,7 +72,7 @@ type Router struct {
 	web.Log
 	Recovers           web.Recover                  // 错误捕捉
 	MaxMultipartMemory int64                        // 文件上传大小
-	Root               string                       // 项目更目录
+	Root               string                       // 项目根目录
 	Resource           string                       // 静态资源管理 默认为 root 目录
 	staticSF           embed.FS                     // 静态资源 embed 注解加载
 	FileService        string                       // 文件服务配置
@@ -146,6 +146,10 @@ func (router *Router) Recover(webRecover web.Recover) {
 
 func (router *Router) Static(fs embed.FS) {
 	router.staticSF = fs
+}
+
+func (router *Router) FileServer(path string) {
+	router.FileService = path
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -761,7 +765,7 @@ func (router *Router) isStatic(path string, rw http.ResponseWriter, req *http.Re
 	mapping := path
 	if index := strings.LastIndex(req.URL.Path, "."); index != -1 { //此处判断这个请求可能为静态资源处理
 		// 文件服务器校验
-		if strings.HasPrefix(path, router.FileService) {
+		if router.FileService != "" && strings.HasPrefix(path, router.FileService) {
 			return false
 		}
 		t := req.URL.Path[index:] //截取可能的资源类型
