@@ -46,6 +46,13 @@ func Debug() Option {
 	}
 }
 
+// MaxMultipartMemory 添加全局设置文件上传大小
+func MaxMultipartMemory(size int64) Option {
+	return func(engine *Engine) {
+		engine.MaxMultipartMemory = size
+	}
+}
+
 // Static web 静态资源配置
 func Static(fs embed.FS) Option {
 	return func(engine *Engine) {

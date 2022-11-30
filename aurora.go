@@ -114,6 +114,7 @@ func NewEngine() *Engine {
 		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
 		use:      make(map[string]useConfiguration),
 	}
+	engine.MaxMultipartMemory = 64 << 20
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
 	engine.space = container.NewSpace() //初始化容器
