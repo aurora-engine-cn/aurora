@@ -1,6 +1,7 @@
 package aurora
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"fmt"
@@ -328,9 +329,12 @@ func (engine *Engine) injection() {
 
 // viperConfig 配置并加载 application.yml 配置文件
 func (engine *Engine) viperConfig() {
+	// 配置文件 更目录扫描路径
 	var ConfigPath string
 	var err error
-	if engine.configpath == "" {
+	cnf := &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
+	// engine.configFile 仅在 build 调用 engine.Config 配置时候 不为nil
+	if engine.configFile == nil && engine.configpath == "" {
 		// 扫描配置文件
 		filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
 			//找到配置及文件,基于根目录优先加载最外层的application.yml
@@ -341,24 +345,30 @@ func (engine *Engine) viperConfig() {
 			}
 			return nil
 		})
-	} else {
-		ConfigPath = engine.configpath
 	}
-	if ConfigPath == "" {
-		engine.config = &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
-		return
+	// 没有扫描配置文件 优先读取 配置文件 字节切片
+	if engine.config == nil && engine.configFile != nil {
+		err := cnf.ReadConfig(bytes.NewBuffer(engine.configFile))
+		ErrorMsg(err)
+		engine.config = cnf
 	}
-	if engine.config == nil {
-		// 用户没有提供 配置项 则创建默认的配置处理
-		cnf := &web.ConfigCenter{
-			viper.New(),
-			&sync.RWMutex{},
-		}
+
+	// 读取自定义配置
+	if engine.config == nil && engine.configpath != "" {
+		cnf.SetConfigFile(engine.configpath)
+		err = cnf.ReadInConfig()
+		ErrorMsg(err)
+		engine.config = cnf
+	}
+
+	// 读取扫描配置
+	if engine.config == nil && ConfigPath != "" {
 		cnf.SetConfigFile(ConfigPath)
 		err = cnf.ReadInConfig()
 		ErrorMsg(err)
 		engine.config = cnf
 	}
+
 	// 加载基础配置
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		engine.Info("the configuration file is loaded successfully.")

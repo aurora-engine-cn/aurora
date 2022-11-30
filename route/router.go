@@ -593,7 +593,7 @@ func (router *Router) handle(c *node, u []string, args map[string]any, rw http.R
 	proxy.Middleware = c.middleware
 	proxy.UrlVariable = u
 	proxy.RESTFul = args
-	proxy.view = web.View
+	proxy.view = router.DefaultView
 	proxy.Recover = router.Recovers
 	proxy.start()
 	router.ProxyPool.Put(proxy)
