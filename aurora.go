@@ -3,7 +3,6 @@ package aurora
 import (
 	"bytes"
 	"context"
-	"embed"
 	"fmt"
 	"gitee.com/aurora-engine/aurora/container"
 	"gitee.com/aurora-engine/aurora/core"
@@ -97,6 +96,8 @@ func New(option ...Option) *Engine {
 	for _, opt := range option {
 		opt(engine)
 	}
+	// 加载配置文件
+	engine.viperConfig()
 	return engine
 }
 
@@ -159,8 +160,6 @@ func NewEngine() *Engine {
 	engine.intrinsic[key] = ctx
 	key = core.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))
 	engine.intrinsic[key] = file
-	// 加载配置文件
-	engine.viperConfig()
 	return engine
 }
 
@@ -215,15 +214,6 @@ func (engine *Engine) Root() string {
 // 现在的试图处理器处理方式比较局限，后续根据开发者需求进一步调整
 func (engine *Engine) ViewHandle(v web.ViewHandle) {
 	engine.router.DefaultView = v
-}
-
-// Static 加载静态资源
-func (engine *Engine) Static(fs embed.FS) {
-	engine.router.Static(fs)
-}
-
-func (engine *Engine) Config(cnf []byte) {
-	engine.configFile = cnf
 }
 
 func ErrorMsg(err error, msg ...string) {

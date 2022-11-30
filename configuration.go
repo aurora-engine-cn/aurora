@@ -1,6 +1,7 @@
 package aurora
 
 import (
+	"embed"
 	"gitee.com/aurora-engine/aurora/web"
 	"github.com/sirupsen/logrus"
 	"reflect"
@@ -13,16 +14,29 @@ import (
 
 type Option func(*Engine)
 
-// ConfigFile 指定Aurora加载配置文件
-func ConfigFile(configPath string) Option {
+// ConfigFilePath 指定 Aurora 加载配置文件位置
+func ConfigFilePath(configPath string) Option {
 	return func(a *Engine) {
 		a.configpath = configPath
 	}
 }
 
+// Config 指定 Aurora 的配置实例
 func Config(config web.Config) Option {
 	return func(engine *Engine) {
 		engine.config = config
+	}
+}
+
+func LoadConfig(cnf []byte) Option {
+	return func(engine *Engine) {
+		engine.configFile = cnf
+	}
+}
+
+func Static(fs embed.FS) Option {
+	return func(engine *Engine) {
+		engine.router.Static(fs)
 	}
 }
 

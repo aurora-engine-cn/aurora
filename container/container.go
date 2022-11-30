@@ -88,7 +88,9 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 			return errors.New("invalid parameter, there is a double pointer or a multi-level pointer")
 		}
 	} else {
-		values = value
+		// 仅对指针处理，非指针直接返回
+		// values = value
+		return nil
 	}
 	//开始扫描该value是否有需要装配的属性
 	for j := 0; j < values.NumField(); j++ {
@@ -99,6 +101,9 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 		kind := fieldType.Type.Kind()
 		if kind == reflect.Pointer {
 			kind = fieldType.Type.Elem().Kind()
+		} else {
+			// 非指针 字段 跳过
+			continue
 		}
 		if !fieldValue.CanSet() || kind != reflect.Struct || !fieldValue.IsZero() {
 			// 校验容器中的组件属性是否被初始化过，未初始化则交由容器初始化
