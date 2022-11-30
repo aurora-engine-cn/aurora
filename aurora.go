@@ -1,8 +1,8 @@
 package aurora
 
 import (
+	"bytes"
 	"context"
-	"embed"
 	"fmt"
 	"gitee.com/aurora-engine/aurora/container"
 	"gitee.com/aurora-engine/aurora/core"
@@ -26,7 +26,7 @@ const (
 	yaml = "application.yaml"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.8)           |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.9)           |"
 
 type Engine struct {
 	// 日志
@@ -80,6 +80,7 @@ type Engine struct {
 	// 配置实例，读取配置文件
 	config web.Config
 
+	// embed 注解加载的配置文件，configFile 被初始化则不会扫描 根路径下的配置文件和自定义配置文件
 	configFile []byte
 
 	// go app 原生服务器
@@ -90,6 +91,8 @@ type Engine struct {
 
 func New(option ...Option) *Engine {
 	engine := NewEngine()
+	// 加载配置文件
+	engine.viperConfig()
 	engine.router = NewRoute(engine)
 	// 执行配置项
 	for _, opt := range option {
@@ -157,8 +160,6 @@ func NewEngine() *Engine {
 	engine.intrinsic[key] = ctx
 	key = core.BaseTypeKey(reflect.ValueOf(new(web.MultipartFile)))
 	engine.intrinsic[key] = file
-	// 加载配置文件
-	engine.viperConfig()
 	return engine
 }
 
@@ -169,6 +170,9 @@ func NewRoute(engine *Engine) *route.Router {
 	router.MaxMultipartMemory = engine.MaxMultipartMemory
 	router.Intrinsic = engine.intrinsic
 	router.Log = engine.Log
+	router.Root = engine.projectRoot
+	router.Resource = engine.resource
+	router.FileService = engine.fileService
 	return router
 }
 
@@ -213,15 +217,6 @@ func (engine *Engine) Root() string {
 // 现在的试图处理器处理方式比较局限，后续根据开发者需求进一步调整
 func (engine *Engine) ViewHandle(v web.ViewHandle) {
 	engine.router.DefaultView = v
-}
-
-// Static 加载静态资源
-func (engine *Engine) Static(fs embed.FS) {
-	engine.router.Static(fs)
-}
-
-func (engine *Engine) Config(cnf []byte) {
-	engine.configFile = cnf
 }
 
 func ErrorMsg(err error, msg ...string) {
@@ -328,9 +323,12 @@ func (engine *Engine) injection() {
 
 // viperConfig 配置并加载 application.yml 配置文件
 func (engine *Engine) viperConfig() {
+	// 配置文件 更目录扫描路径
 	var ConfigPath string
 	var err error
-	if engine.configpath == "" {
+	cnf := &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
+	// engine.configFile 仅在 build 调用 engine.Config 配置时候 不为nil
+	if engine.configFile == nil && engine.configpath == "" {
 		// 扫描配置文件
 		filepath.WalkDir(engine.projectRoot, func(p string, d fs.DirEntry, err error) error {
 			//找到配置及文件,基于根目录优先加载最外层的application.yml
@@ -341,24 +339,31 @@ func (engine *Engine) viperConfig() {
 			}
 			return nil
 		})
-	} else {
-		ConfigPath = engine.configpath
 	}
-	if ConfigPath == "" {
-		engine.config = &web.ConfigCenter{Viper: viper.New(), RWMutex: &sync.RWMutex{}}
-		return
+	// 没有扫描配置文件 优先读取 配置文件 字节切片
+	if engine.config == nil && engine.configFile != nil {
+		cnf.SetConfigType("yml")
+		err := cnf.ReadConfig(bytes.NewBuffer(engine.configFile))
+		ErrorMsg(err)
+		engine.config = cnf
 	}
-	if engine.config == nil {
-		// 用户没有提供 配置项 则创建默认的配置处理
-		cnf := &web.ConfigCenter{
-			viper.New(),
-			&sync.RWMutex{},
-		}
+
+	// 读取自定义配置
+	if engine.config == nil && engine.configpath != "" {
+		cnf.SetConfigFile(engine.configpath)
+		err = cnf.ReadInConfig()
+		ErrorMsg(err)
+		engine.config = cnf
+	}
+
+	// 读取扫描配置
+	if engine.config == nil && ConfigPath != "" {
 		cnf.SetConfigFile(ConfigPath)
 		err = cnf.ReadInConfig()
 		ErrorMsg(err)
 		engine.config = cnf
 	}
+
 	// 加载基础配置
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		engine.Info("the configuration file is loaded successfully.")
@@ -372,12 +377,12 @@ func (engine *Engine) viperConfig() {
 		p := engine.config.GetString("aurora.resource")
 		// 构建路径拼接，此处在路径前后加上斜杠 用于静态资源的路径凭借方便
 		if p != "" {
-			if p[:1] != "/" {
-				p = "/" + p
-			}
-			if p[len(p)-1:] != "/" {
-				p = p + "/"
-			}
+			//if p[:1] != "/" {
+			//	p = "/" + p
+			//}
+			//if p[len(p)-1:] != "/" {
+			//	p = p + "/"
+			//}
 			engine.resource = p
 		}
 		// 读取文件服务配置
