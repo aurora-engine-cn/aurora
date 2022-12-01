@@ -62,7 +62,7 @@ func TestImpl(t *testing.T) {
 	aaa := &serviceImp.Aaa{Name: "aaa"}
 	bbb := &serviceImp.Bbb{}
 	space := NewSpace()
-	space.Put("", aaa)
+	space.Put("A", aaa)
 	space.Put("", bbb)
 	err := space.Start()
 	if err != nil {
@@ -70,6 +70,6 @@ func TestImpl(t *testing.T) {
 		return
 	}
 	aaa.Name = "bbb"
-	get := bbb.Get("")
+	get := bbb.Get()
 	t.Log(get)
 }

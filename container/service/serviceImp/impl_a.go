@@ -4,6 +4,6 @@ type Aaa struct {
 	Name string
 }
 
-func (a *Aaa) Get(name string) string {
+func (a *Aaa) Get() string {
 	return a.Name
 }

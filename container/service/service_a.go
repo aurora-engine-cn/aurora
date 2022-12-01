@@ -1,5 +1,5 @@
 package service
 
 type A interface {
-	Get(string) string
+	Get() string
 }

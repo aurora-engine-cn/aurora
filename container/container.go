@@ -139,8 +139,13 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				// 继续进行第二次缓存加载依然无法找到指定的 tag 引用，这个情况下找不到的引用只可能是不存在于容器中，在第二次缓存加载走到这里就是错误的
 				_, is := space.firstCache[depKey]
 				if is {
-					msg := fmt.Sprintf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
-
+					msg := ""
+					switch fieldType.Type.Kind() {
+					case reflect.Pointer:
+						msg = fmt.Sprintf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), value.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
+					case reflect.Interface:
+						msg = fmt.Sprintf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), value.Type().String(), fieldValue.Type().PkgPath(), fieldValue.Type().String())
+					}
 					// check 主要用于校验 这个字段是不是需要强制检验，强制检验主要是针对字段上面有 tag  ref属性的引用，ref引用找不到就会返回错误
 					if check {
 						// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
@@ -211,6 +216,10 @@ func DepKey(filed reflect.StructField) (string, bool) {
 		// 如果字段是 接口类型 我们读取 impl 属性，impl 属性代表这个接口需要一个什么样的实现体，impl 也必须是 容器中可寻找到的属性
 		if r, b := filed.Tag.Lookup("impl"); b && r != "" {
 			depKey = r
+		} else {
+			// 没有 impl tag 则用字段名进行匹配
+			depKey = filed.Name
+			check = false
 		}
 	default:
 		if r, b := filed.Tag.Lookup("ref"); b && r != "" {
