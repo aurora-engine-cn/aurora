@@ -9,6 +9,11 @@ import (
 	"reflect"
 )
 
+type name interface {
+	Put(key string, value any) error
+	Start() error
+}
+
 func NewSpace() *Space {
 	return &Space{
 		initializeCache: make(map[string]any),
@@ -80,16 +85,19 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 	// values 主要用来操作结构体字段
 	var values, fieldValue reflect.Value
 	// 检擦 value 是否为指针
-	if value.Kind() == reflect.Pointer {
+	switch value.Kind() {
+	case reflect.Pointer:
 		// 我们需要 操作指向的值进行初始化
 		values = value.Elem()
 		//需要检擦 指向的值是否为结构体，存在双重指针或者多级指针的 视为无效属性
 		if values.Kind() == reflect.Pointer {
 			return errors.New("invalid parameter, there is a double pointer or a multi-level pointer")
 		}
-	} else {
-		// 仅对指针处理，非指针直接返回
-		// values = value
+	case reflect.Interface:
+
+	case reflect.Struct:
+		return nil
+	default:
 		return nil
 	}
 	//开始扫描该value是否有需要装配的属性
@@ -98,17 +106,23 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 		// 获取到结构体字段的反射类型
 		fieldType := values.Type().Field(j)
 		// 获取字段类型的类别
-		kind := fieldType.Type.Kind()
-		if kind == reflect.Pointer {
-			kind = fieldType.Type.Elem().Kind()
-		} else {
-			// 非指针 字段 跳过
-			continue
-		}
-		if !fieldValue.CanSet() || kind != reflect.Struct || !fieldValue.IsZero() {
-			// 校验容器中的组件属性是否被初始化过，未初始化则交由容器初始化
-			// 检查字段需要满足 类别是结构体 并且是没有被初始化的
-			// 必须是可设置的
+		switch fieldType.Type.Kind() {
+		case reflect.Pointer:
+			kind := fieldType.Type.Elem().Kind()
+			if !fieldValue.CanSet() || kind != reflect.Struct || !fieldValue.IsZero() {
+				// 校验容器中的组件属性是否被初始化过，未初始化则交由容器初始化
+				// 检查字段需要满足 类别是结构体 并且是没有被初始化的
+				// 必须是可设置的
+				continue
+			}
+		case reflect.Interface:
+			// 考虑是否要给接口初始化 以边后面赋值操作
+			if fieldValue.CanSet() {
+				if fieldValue.IsNil() {
+					fmt.Println("nil")
+				}
+			}
+		default:
 			continue
 		}
 		var depValue *reflect.Value
@@ -126,6 +140,8 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				_, is := space.firstCache[depKey]
 				if is {
 					msg := fmt.Sprintf("'%s-%s' '%s-%s' Reference instance not found \n", values.Type().PkgPath(), values.Type().String(), fieldValue.Type().Elem().PkgPath(), fieldValue.Type().String())
+
+					// check 主要用于校验 这个字段是不是需要强制检验，强制检验主要是针对字段上面有 tag  ref属性的引用，ref引用找不到就会返回错误
 					if check {
 						// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
 						return errors.New(msg)
@@ -190,15 +206,23 @@ func DepKey(filed reflect.StructField) (string, bool) {
 	depKey := ""
 	// check 标识 通过 tag 方式初始化的 变量，必须要校验
 	check := true
-	if r, b := filed.Tag.Lookup("ref"); b && r != "" {
-		depKey = r
-	} else {
-		if filed.Type.Kind() == reflect.Ptr {
-			depKey = fmt.Sprintf("%s-%s", filed.Type.Elem().PkgPath(), filed.Type.String())
-		} else {
-			depKey = fmt.Sprintf("%s-%s", filed.Type.PkgPath(), filed.Type.String())
+	switch filed.Type.Kind() {
+	case reflect.Interface:
+		// 如果字段是 接口类型 我们读取 impl 属性，impl 属性代表这个接口需要一个什么样的实现体，impl 也必须是 容器中可寻找到的属性
+		if r, b := filed.Tag.Lookup("impl"); b && r != "" {
+			depKey = r
 		}
-		check = false
+	default:
+		if r, b := filed.Tag.Lookup("ref"); b && r != "" {
+			depKey = r
+		} else {
+			if filed.Type.Kind() == reflect.Ptr {
+				depKey = fmt.Sprintf("%s-%s", filed.Type.Elem().PkgPath(), filed.Type.String())
+			} else {
+				depKey = fmt.Sprintf("%s-%s", filed.Type.PkgPath(), filed.Type.String())
+			}
+			check = false
+		}
 	}
 	return depKey, check
 }
@@ -229,9 +253,12 @@ func Injection(field, value reflect.Value) error {
 	}
 	switch field.Kind() {
 	case reflect.Interface:
-		//如果参数是接口
-		ElementValue := field.Elem()
-		return Injection(ElementValue, value)
+		//如果字段是接口，我们 需要判断 value 是否实现了 filed 字段接口
+		if value.Type().Implements(field.Type()) && value.Type().AssignableTo(field.Type()) {
+			field.Set(value)
+			return nil
+		}
+		return errors.New(value.Type().String() + "can not assignable to " + field.Type().String())
 	case reflect.Ptr:
 		if field.IsNil() {
 			// 当前指针为空 设置指针指向value的地址
