@@ -146,6 +146,7 @@ func Assignment(arguments reflect.Value, value interface{}) error {
 		}
 		// 如果对应参数是 interface{} 将map传给它
 		if t.Kind() == reflect.Interface {
+			// 需要校验 空接口和 具体接口 由于使用的规则，这里一般是空接口可以直接赋值，不在使用规则内，如果出现具体接口 ，此处可能发生未知错误导致恐慌
 			arguments.Set(reflect.ValueOf(value))
 			return nil
 		}

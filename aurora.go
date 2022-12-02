@@ -26,7 +26,7 @@ const (
 	yaml = "application.yaml"
 )
 
-var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.9)           |"
+var banner = " ,--.    __   _    _ .--.    .--.    _ .--.   ,--.\n`'_\\ :  [  | | |  [ `/'`\\] / .'`\\ \\ [ `/'`\\] `'_\\ :\n// | |,  | \\_/ |,  | |     | \\__. |  | |     // | |,\n\\'-;__/  '.__.'_/ [___]     '.__.'  [___]    \\'-;__/\n|          Aurora Web framework (v1.3.11)           |"
 
 type Engine struct {
 	// 日志
@@ -98,6 +98,8 @@ func New(option ...Option) *Engine {
 	for _, opt := range option {
 		opt(engine)
 	}
+	// 可能重新读取了配置 调用刷新配置
+	engine.viperConfig()
 	return engine
 }
 
@@ -114,6 +116,7 @@ func NewEngine() *Engine {
 		resource: "", //设定资源默认存储路径，需要连接项目更目录 和解析出来资源的路径，资源路径解析出来是没有前缀 “/” 的作为 resource属性，在其两边加上 斜杠
 		use:      make(map[string]useConfiguration),
 	}
+	engine.MaxMultipartMemory = 8 << 20
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
 	engine.space = container.NewSpace() //初始化容器
@@ -377,12 +380,6 @@ func (engine *Engine) viperConfig() {
 		p := engine.config.GetString("aurora.resource")
 		// 构建路径拼接，此处在路径前后加上斜杠 用于静态资源的路径凭借方便
 		if p != "" {
-			//if p[:1] != "/" {
-			//	p = "/" + p
-			//}
-			//if p[len(p)-1:] != "/" {
-			//	p = p + "/"
-			//}
 			engine.resource = p
 		}
 		// 读取文件服务配置

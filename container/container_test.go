@@ -5,7 +5,7 @@ import (
 )
 
 type Aaa struct {
-	*Bbb
+	Bbb
 	*Ccc
 	Name string
 }
@@ -35,9 +35,6 @@ type Fff struct {
 	*Eee
 }
 
-func init() {
-
-}
 func TestSpace_Start(t *testing.T) {
 	aaa := &Aaa{Name: "aaa"}
 	bbb := &Bbb{Name: "bbb"}

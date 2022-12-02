@@ -29,6 +29,8 @@ func Config(config web.Config) Option {
 }
 
 // LoadConfig 加载配置文件数据
+// 该方法只适用于 本地配置文件 embed 方式加载配置文件数据，初始化配置实例还是默认的
+// 如果想要 第三方数据源 请使用 Config 方法替换掉 默认的配置实例
 func LoadConfig(cnf []byte) Option {
 	return func(engine *Engine) {
 		engine.configFile = cnf
@@ -43,6 +45,13 @@ func Debug() Option {
 			l := of.Interface()
 			l.(*logrus.Logger).SetLevel(logrus.DebugLevel)
 		}
+	}
+}
+
+// MaxMultipartMemory 添加全局设置文件上传大小
+func MaxMultipartMemory(size int64) Option {
+	return func(engine *Engine) {
+		engine.MaxMultipartMemory = size
 	}
 }
 
