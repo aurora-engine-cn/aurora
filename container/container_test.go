@@ -1,7 +1,6 @@
 package container
 
 import (
-	"gitee.com/aurora-engine/aurora/container/service/serviceImp"
 	"testing"
 )
 
@@ -56,20 +55,4 @@ func TestSpace_Start(t *testing.T) {
 		return
 	}
 	t.Log()
-}
-
-func TestImpl(t *testing.T) {
-	aaa := &serviceImp.Aaa{Name: "aaa"}
-	bbb := &serviceImp.Bbb{}
-	space := NewSpace()
-	space.Put("A", aaa)
-	space.Put("", bbb)
-	err := space.Start()
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-	aaa.Name = "bbb"
-	get := bbb.Get()
-	t.Log(get)
 }
