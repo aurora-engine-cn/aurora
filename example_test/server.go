@@ -1,6 +1,7 @@
 package example
 
 import (
+	"errors"
 	"fmt"
 	"gitee.com/aurora-engine/aurora"
 	"gitee.com/aurora-engine/aurora/web"
@@ -14,8 +15,8 @@ type Server struct {
 }
 
 type GetArgs struct {
-	Name string `empty:"false" value:""`
-	Age  int    `constraint:"check"`
+	Name string
+	Age  int `constraint:"check"`
 }
 
 func Recover() web.Recover {
@@ -28,12 +29,18 @@ func Recover() web.Recover {
 
 func (server *Server) Server() {
 	server.Use(Recover())
+	server.Constraint("check", func(value any) error {
+		if value.(int) <= 0 {
+			return errors.New("error value is 0")
+		}
+		return nil
+	})
 }
 
 func (server *Server) Router() {
 	// 添加 app 路由
 
-	server.Get("test", func(args GetArgs) {
+	server.Get("test", func(file web.MultipartFile) {
 
 	})
 
