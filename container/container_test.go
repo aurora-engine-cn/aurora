@@ -6,7 +6,7 @@ import (
 )
 
 type Aaa struct {
-	*Bbb
+	Bbb
 	*Ccc
 	Name string
 }

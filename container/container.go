@@ -2,6 +2,9 @@ package container
 
 // container.go 用于重构 ioc.go
 // 从 go1.19 版本开始 container.go 只接受指针变量放入容器
+// container 存在的问题，当前版本的容器仅支持启动程序运行一次，
+// 为容器中的各个数据初始化赋值。虽然 Put Star等方法可以调用多次，但是container无法保证在协程中会发生什么样的问题
+// 后续将考虑 将容器添加启动标识，让它只能进行一次启动。
 
 import (
 	"errors"
@@ -110,18 +113,17 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 		case reflect.Pointer:
 			kind := fieldType.Type.Elem().Kind()
 			if !fieldValue.CanSet() || kind != reflect.Struct || !fieldValue.IsZero() {
+				// 必须是可设置的
 				// 校验容器中的组件属性是否被初始化过，未初始化则交由容器初始化
 				// 检查字段需要满足 类别是结构体 并且是没有被初始化的
-				// 必须是可设置的
 				continue
 			}
 		case reflect.Interface:
-			// 考虑是否要给接口初始化 以边后面赋值操作
 			if fieldValue.CanSet() {
-				if fieldValue.IsNil() {
-					fmt.Println("nil")
-				}
+				// 校验接口 属性是具体接口还是空接口
 			}
+		case reflect.Func:
+			continue
 		default:
 			continue
 		}
@@ -268,7 +270,7 @@ func Injection(field, value reflect.Value) error {
 			return nil
 		}
 		return errors.New(value.Type().String() + "can not assignable to " + field.Type().String())
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if field.IsNil() {
 			// 当前指针为空 设置指针指向value的地址
 			if value.Elem().CanAddr() && field.CanSet() {
