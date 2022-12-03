@@ -1,7 +1,7 @@
 package route
 
 import (
-	"gitee.com/aurora-engine/aurora/utils/stringutils"
+	"gitee.com/aurora-engine/aurora/utils/strutils"
 	"gitee.com/aurora-engine/aurora/web"
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
@@ -75,7 +75,7 @@ func (proxy *Proxy) resultHandler() {
 	header := proxy.Rew.Header()
 	// 处理响应结果之前 判空 Content-Type，以支持用户自定义返回格式,默认会添加json格式
 	get := header.Get(contentType)
-	if stringutils.IsEmpty(get) {
+	if strutils.IsEmpty(get) {
 		header.Set(contentType, ResourceMapType[".json"])
 	}
 	for i := 0; i < len(proxy.values); i++ {

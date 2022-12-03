@@ -1,7 +1,7 @@
 package timeutils
 
 import (
-	"gitee.com/aurora-engine/aurora/utils"
+	"gitee.com/aurora-engine/aurora/utils/uerr"
 	"time"
 )
 
@@ -61,6 +61,6 @@ func AfterDate(day int) string {
 // Time 解析时间字符串
 func Time(v string) time.Time {
 	parse, err := time.Parse(datetime, v)
-	utils.UtilError(err)
+	uerr.UtilError(err)
 	return parse
 }

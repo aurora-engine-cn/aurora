@@ -1,12 +1,13 @@
 package jsonutils
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	"gitee.com/aurora-engine/aurora/utils/uerr"
+	jsoniter "github.com/json-iterator/go"
+)
 
-// JsonString 将数据转化为json字符串
-func JsonString(data any) string {
+// Json 将数据转化为json字符串
+func Json(data any) string {
 	marshal, err := jsoniter.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
+	uerr.UtilError(err)
 	return string(marshal)
 }
