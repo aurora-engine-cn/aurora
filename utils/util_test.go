@@ -5,7 +5,7 @@ import (
 	"gitee.com/aurora-engine/aurora/utils/maputils"
 	"gitee.com/aurora-engine/aurora/utils/sliceutils"
 	"gitee.com/aurora-engine/aurora/utils/strutils"
-	"math"
+	"gitee.com/aurora-engine/aurora/utils/uerr"
 	"testing"
 )
 
@@ -30,7 +30,15 @@ func TestString(t *testing.T) {
 }
 
 func TestMath(t *testing.T) {
-	f := 13.36
-	floor := fmt.Sprintf("%0.2f", math.Floor((f+0.05)*100)/100)
-	t.Log(floor)
+	defer func() {
+		if err := recover(); err != nil {
+			switch err.(type) {
+			case error:
+				fmt.Println(err.(error).Error())
+			case uerr.UtilsError:
+				fmt.Println(err.(uerr.UtilsError))
+			}
+		}
+	}()
+	panic(uerr.UtilsError("error"))
 }
