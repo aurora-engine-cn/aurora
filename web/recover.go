@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"gitee.com/aurora-engine/aurora/utils/uerr"
 	jsoniter "github.com/json-iterator/go"
 	"net/http"
 	"runtime/debug"
@@ -19,6 +20,8 @@ func ErrRecover(w http.ResponseWriter) {
 			msg = v.(error).Error()
 		case string:
 			msg = v.(string)
+		case uerr.UtilsError:
+			msg = string(v.(uerr.UtilsError))
 		default:
 			marshal, err := jsoniter.Marshal(v)
 			if err != nil {

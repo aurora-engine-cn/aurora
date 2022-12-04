@@ -2,7 +2,7 @@ package core
 
 import (
 	"errors"
-	"gitee.com/aurora-engine/aurora/utils/stringutils"
+	"gitee.com/aurora-engine/aurora/utils/strutils"
 	"reflect"
 	"time"
 )
@@ -22,7 +22,7 @@ func TimeType(value reflect.Value, data any) error {
 			}
 		}
 	}
-	if stringutils.IsEmpty(timeV) {
+	if strutils.IsEmpty(timeV) {
 		return errors.New("Time.Time property initialization failed, please check whether the corresponding value format is correct")
 	}
 	parse, err := time.Parse("2006-04-02 15:04:04", timeV)
@@ -48,7 +48,7 @@ func TimePointerType(value reflect.Value, data any) error {
 			}
 		}
 	}
-	if stringutils.IsEmpty(timeV) {
+	if strutils.IsEmpty(timeV) {
 		return errors.New("*Time.Time property initialization failed, please check whether the corresponding value format is correct")
 	}
 

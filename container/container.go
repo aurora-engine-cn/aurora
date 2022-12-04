@@ -118,14 +118,10 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 				// 检查字段需要满足 类别是结构体 并且是没有被初始化的
 				continue
 			}
-		case reflect.Interface:
-			if fieldValue.CanSet() {
-				// 校验接口 属性是具体接口还是空接口
-			}
-		case reflect.Func:
-			continue
 		default:
-			continue
+			if !fieldValue.CanSet() || !fieldValue.IsZero() {
+				continue
+			}
 		}
 		var depValue *reflect.Value
 		Key, check := DepKey(fieldType)
@@ -153,7 +149,7 @@ func (space *Space) dependence(depKey string, value reflect.Value) error {
 						// 第一次缓存加载 ，此处必定不会执行，若是第二次缓存加载 ，并且没有找到指定的 ref 必定走到此处 将返回错误
 						return errors.New(msg)
 					}
-					fmt.Println(msg)
+					fmt.Print(msg)
 					// 跳过该属性的初始化
 					continue
 				}

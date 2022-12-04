@@ -44,19 +44,27 @@ type Controller struct {
 // 完成对 InvokeValues 控制器参数的初始化(未赋值状态)
 // 完成对应的 AssignmentIndex 可赋值参数序列初始化
 func (control *Controller) InitArgs() {
+	// 初始化入参数量
 	control.InNum = control.FunType.NumIn()
+	// 初始化返回值数量
 	control.OutNum = control.FunType.NumOut()
+	// 初始化 可赋值索引
 	control.AssignmentIndex = make([]int, 0)
 	//初始化参数列表
 	if control.InNum > 0 {
+		// 初始化函数入参
 		control.InvokeValues = make([]reflect.Value, control.InNum)
+		// 初始化参数对应的字面量数据
 		control.Args = make([]string, control.InNum)
 	}
 	for i := 0; i < control.InNum; i++ {
+		// 获取 函数入参类型
 		arguments := control.FunType.In(i)
+		// 创建参数
 		value := reflect.New(arguments).Elem()
-		//初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
+		// 初始化参数期间对参数列表进行标记，以便匹配参数顺序,此处主要是处理存在web请求体或者响应体的位置
 		key := core.BaseTypeKey(value)
+		// 检查参数是否是系统参数
 		if _, b := control.Intrinsic[key]; b {
 			control.Args[i] = key
 			control.InvokeValues[i] = value
@@ -145,8 +153,8 @@ func (control *Controller) analysisInput(request *http.Request) {
 			ErrorMsg(err, "The json parameter decoding failed, please check whether the json data format is correct.error:")
 		} else {
 			switch control.InvokeValues[i].Kind() {
-			case reflect.Map, reflect.Struct, reflect.Interface, reflect.Ptr:
-				if control.InvokeValues[i].Kind() == reflect.Ptr {
+			case reflect.Map, reflect.Struct, reflect.Interface, reflect.Pointer:
+				if control.InvokeValues[i].Kind() == reflect.Pointer {
 					kind := control.InvokeValues[i].Type().Elem().Kind()
 					if !(kind == reflect.Map || kind == reflect.Struct) {
 						data = v
@@ -161,7 +169,8 @@ func (control *Controller) analysisInput(request *http.Request) {
 					control.RESTFul[k] = v[0]
 				}
 				data = control.RESTFul
-				//使用结构体或者map进行解析 在对应的参数位置应该多添加一个占位符号，以确保后面存在的参数能够正确被初始化复制，此处需要 在 i位置对 Args 添加一个占位
+				//使用结构体或者map进行解析 在对应的参数位置应该多添加一个占位符号，
+				//以确保后面存在的参数能够正确被初始化复制，此处需要 在 i位置对 Args 添加一个占位
 				s := control.Args[:i]
 				e := control.Args[i:]
 				control.Args = make([]string, 0)
@@ -211,6 +220,7 @@ func PostRequest(request *http.Request, control *Controller) []string {
 		}
 		if form.Value != nil {
 			// 2022-5-20 更新 多文本混合上传方式
+			// 如果请求体和文件上传的方式同时存在，则每个独立属性的值都单独存放对应一个入参
 			for _, v := range form.Value {
 				length := len(v)
 				if length == 0 {
