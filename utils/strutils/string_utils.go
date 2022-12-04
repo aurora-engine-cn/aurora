@@ -16,8 +16,8 @@ func Int(v string) (Int int) {
 	return int(parseInt)
 }
 
-// Float 浮点字符串转化为 float64
-func Float(v string) (Float float64) {
+// Float64 浮点字符串转化为 float64
+func Float64(v string) (Float float64) {
 	Float, err := strconv.ParseFloat(v, 64)
 	uerr.UtilError(err)
 	return

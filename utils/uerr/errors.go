@@ -9,9 +9,10 @@ import (
 type UtilsError string
 
 // UtilError utils中的错误panic处理
+// msg 附加消息，会放在 具体error消息之前
 func UtilError(err error, msg ...string) {
 	if err != nil {
-		errMsg := fmt.Sprintf("utils error: %s %s", strings.Join(msg, ""), err.Error())
+		errMsg := fmt.Sprintf("utils msg: %s. err: %s", strings.Join(msg, ""), err.Error())
 		panic(UtilsError(errMsg))
 	}
 }
