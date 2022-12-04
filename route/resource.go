@@ -59,7 +59,8 @@ func (router *Router) resourceFun(w http.ResponseWriter, mapping string, path st
 		relative = filepath.ToSlash(relative)
 		data, _ = router.staticSF.ReadFile(relative)
 	} else {
-		data = router.readResource(router.Root + router.Resource + path)
+		fullpath := filepath.Join(router.Root, router.Resource, path)
+		data = router.readResource(fullpath)
 	}
 	if data != nil {
 		h := w.Header()

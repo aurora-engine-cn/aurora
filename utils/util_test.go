@@ -13,7 +13,7 @@ func TestSlice(t *testing.T) {
 	arr := []int{1}
 	t.Log(sliceutils.IsEmpty(arr))
 	t.Log(sliceutils.StrSlice(1, 2.2, false))
-	t.Log(sliceutils.Slice(1.1, 2.1, 2.33))
+
 }
 
 func TestMap(t *testing.T) {

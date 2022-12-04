@@ -59,8 +59,12 @@ func AfterDate(day int) string {
 }
 
 // Time 解析时间字符串
-func Time(v string) time.Time {
-	parse, err := time.Parse(datetime, v)
+func Time(v string, format ...string) time.Time {
+	f := datetime
+	if format != nil {
+		f = format[0]
+	}
+	parse, err := time.Parse(f, v)
 	uerr.UtilError(err)
 	return parse
 }
