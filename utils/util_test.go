@@ -11,9 +11,9 @@ import (
 
 func TestSlice(t *testing.T) {
 	arr := []int{1}
-	//t.Log(sliceutils.IsEmpty(arr))
-	//t.Log(sliceutils.StrSlice(1, 2.2, false))
-	t.Log(sliceutils.Slice(arr))
+	t.Log(sliceutils.IsEmpty(arr))
+	t.Log(sliceutils.StrSlice(1, 2.2, false))
+
 }
 
 func TestMap(t *testing.T) {
