@@ -33,8 +33,3 @@ func StrSlice(v ...any) (strings []string) {
 	}
 	return
 }
-
-// Slice 返回一个任意切片
-func Slice[T any](v ...T) (values []T) {
-	return v
-}
