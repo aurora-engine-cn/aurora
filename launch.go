@@ -27,6 +27,9 @@ func Run(app Application) error {
 	app.Server()
 	// 启动ioc
 	app.start()
+
+	// 第三方库加载
+
 	// 加载路由
 	app.Router()
 	// 运行服务器

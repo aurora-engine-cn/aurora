@@ -4,12 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/container"
-	"gitee.com/aurora-engine/aurora/core"
-	"gitee.com/aurora-engine/aurora/route"
-	"gitee.com/aurora-engine/aurora/web"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io/fs"
 	"net"
 	"net/http"
@@ -19,6 +13,13 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"gitee.com/aurora-engine/aurora/container"
+	"gitee.com/aurora-engine/aurora/core"
+	"gitee.com/aurora-engine/aurora/route"
+	"gitee.com/aurora-engine/aurora/web"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -407,4 +408,9 @@ func (engine *Engine) baseContext(ln net.Listener) context.Context {
 	engine.cancel = f
 	engine.Info(fmt.Sprintf("the server successfully binds to the port:%s", engine.port))
 	return c
+}
+
+// 第三方库 配置初始化
+func (engine *Engine) library() {
+
 }
