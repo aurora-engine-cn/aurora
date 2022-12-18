@@ -16,8 +16,11 @@ type Option func(*Engine)
 
 // ConfigFilePath 指定 Aurora 加载配置文件位置
 func ConfigFilePath(configPath string) Option {
-	return func(a *Engine) {
-		a.configpath = configPath
+	return func(engine *Engine) {
+		// 重置配置
+		engine.config = nil
+		engine.configpath = configPath
+		engine.viperConfig()
 	}
 }
 
@@ -25,6 +28,7 @@ func ConfigFilePath(configPath string) Option {
 func Config(config web.Config) Option {
 	return func(engine *Engine) {
 		engine.config = config
+		engine.viperConfig()
 	}
 }
 
@@ -33,7 +37,9 @@ func Config(config web.Config) Option {
 // 如果想要 第三方数据源 请使用 Config 方法替换掉 默认的配置实例
 func LoadConfig(cnf []byte) Option {
 	return func(engine *Engine) {
+		engine.config = nil
 		engine.configFile = cnf
+		engine.viperConfig()
 	}
 }
 

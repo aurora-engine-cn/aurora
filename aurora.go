@@ -90,17 +90,22 @@ type Engine struct {
 	ln net.Listener
 }
 
+// New 创建 Aurora 实例
+// 优先创建基础 Engine 实例
+// 读取配置文件
+// 创建路由
+// 加载 Option
+// 再次读取配置文件
+// Option 中可以进行任意的配置操作
 func New(option ...Option) *Engine {
 	engine := NewEngine()
-	// 加载配置文件
+	// 初始加载配置文件
 	engine.viperConfig()
 	engine.router = NewRoute(engine)
 	// 执行配置项
 	for _, opt := range option {
 		opt(engine)
 	}
-	// 可能重新读取了配置 调用刷新配置
-	engine.viperConfig()
 	return engine
 }
 
