@@ -49,13 +49,8 @@ func Test2(t T) {
 func (server *Server) Router() {
 	// 添加 app 路由
 
-	server.Post("/upload", func(data any, file *web.MultipartFile) {
-		for _, headers := range file.File {
-			err := file.SaveUploadedFile(headers[0], "W:\\code\\go\\framework\\aurora\\example_test\\"+headers[0].Filename)
-			if err != nil {
-				panic(err)
-			}
-		}
+	server.Get("/test", func(rew http.ResponseWriter) {
+		rew.Header().Set("TestHeader", "TestHeaderValue")
 	})
 
 	//server.Post("/user", func(name, age string) string {
