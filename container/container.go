@@ -51,6 +51,8 @@ func (space *Space) Get(ref string) *reflect.Value {
 	return load
 }
 
+// Cache 获取主缓存
+// 需要等待容器启动完成获取
 func (space *Space) Cache() map[string]*reflect.Value {
 	return space.mainCache
 }

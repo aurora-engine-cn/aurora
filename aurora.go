@@ -4,12 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"gitee.com/aurora-engine/aurora/container"
-	"gitee.com/aurora-engine/aurora/core"
-	"gitee.com/aurora-engine/aurora/route"
-	"gitee.com/aurora-engine/aurora/web"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io/fs"
 	"net"
 	"net/http"
@@ -19,6 +13,13 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"gitee.com/aurora-engine/aurora/container"
+	"gitee.com/aurora-engine/aurora/core"
+	"gitee.com/aurora-engine/aurora/route"
+	"gitee.com/aurora-engine/aurora/web"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -89,17 +90,22 @@ type Engine struct {
 	ln net.Listener
 }
 
+// New 创建 Aurora 实例
+// 优先创建基础 Engine 实例
+// 读取配置文件
+// 创建路由
+// 加载 Option
+// 再次读取配置文件
+// Option 中可以进行任意的配置操作
 func New(option ...Option) *Engine {
 	engine := NewEngine()
-	// 加载配置文件
+	// 初始加载配置文件
 	engine.viperConfig()
 	engine.router = NewRoute(engine)
 	// 执行配置项
 	for _, opt := range option {
 		opt(engine)
 	}
-	// 可能重新读取了配置 调用刷新配置
-	engine.viperConfig()
 	return engine
 }
 
@@ -407,4 +413,9 @@ func (engine *Engine) baseContext(ln net.Listener) context.Context {
 	engine.cancel = f
 	engine.Info(fmt.Sprintf("the server successfully binds to the port:%s", engine.port))
 	return c
+}
+
+// 第三方库 配置初始化
+func (engine *Engine) library() {
+
 }
