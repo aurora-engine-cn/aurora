@@ -14,6 +14,13 @@ import (
 
 type Option func(*Engine)
 
+// Logs 配置日志实例
+func Logs(log web.Log) Option {
+	return func(engine *Engine) {
+		engine.Log = log
+	}
+}
+
 // ConfigFilePath 指定 Aurora 加载配置文件位置
 func ConfigFilePath(configPath string) Option {
 	return func(engine *Engine) {
