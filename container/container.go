@@ -26,9 +26,15 @@ func NewSpace() *Space {
 }
 
 type Space struct {
-	initializeCache map[string]interface{}    // 初始缓存容器
-	firstCache      map[string]*reflect.Value // 一级缓存,存放有部分属性未初始化的容器
-	mainCache       map[string]*reflect.Value // 主缓存容器
+	initializeCache    map[string]any            // 初始缓存容器
+	firstCache         map[string]*reflect.Value // 一级缓存,存放有部分属性未初始化的容器
+	mainCache          map[string]*reflect.Value // 主缓存容器
+	defaultConstructor map[string]*reflect.Value // 默认构造函数
+
+}
+
+func (space *Space) Constructor(New ...any) {
+
 }
 
 // Put 向容器中存放依赖项
