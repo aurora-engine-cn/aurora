@@ -67,6 +67,13 @@ const (
 	response = "AuroraResponse" //go 原生响应
 )
 
+type Route interface {
+
+	// Search 方法 参数 root:根路由 ，path:接口请求路径
+	// 返回值 *Node: 接口执行节点  []string:请求路径RESTFul参数序列  map[string]any: 请求参数RESTFul k/v
+	Search(root *Node, path string) (*Node, []string, map[string]any)
+}
+
 // Router Aurora 核心路由器
 type Router struct {
 	web.Log
@@ -723,7 +730,7 @@ func RESTFul(n *Node, mapping string) ([]string, map[string]any) {
 	FullPath := n.FullPath
 	ReqPath := mapping
 	urls := make([]string, 0)
-	args := make(map[string]interface{})
+	args := make(map[string]any)
 	length := len(FullPath)
 	lengthReq := len(ReqPath)
 	star := 0

@@ -47,7 +47,7 @@ type Engine struct {
 	// 可指定的配置文件
 	configpath string
 	// 路由服务管理
-	router *route.Router
+	Route *route.Router
 	// 项目根路径
 	projectRoot string
 
@@ -101,7 +101,7 @@ func New(option ...Option) *Engine {
 	engine := NewEngine()
 	// 初始加载配置文件
 	engine.viperConfig()
-	engine.router = NewRoute(engine)
+	engine.Route = NewRoute(engine)
 	// 执行配置项
 	for _, opt := range option {
 		opt(engine)
@@ -126,7 +126,7 @@ func NewEngine() *Engine {
 	projectRoot, _ := os.Getwd()
 	engine.projectRoot = projectRoot    //初始化项目路径信息
 	engine.space = container.NewSpace() //初始化容器
-	engine.space.Put("", engine)
+	engine.space.Put("", engine)        // 注册engine自身
 	logs := logrus.New()
 	logs.SetFormatter(&web.Formatter{})
 	logs.Out = os.Stdout
@@ -208,7 +208,7 @@ func (engine *Engine) Use(Configuration ...any) {
 
 // Constraint 参数验证器
 func (engine *Engine) Constraint(tag string, verify web.Verify) {
-	engine.router.Constraint(tag, verify)
+	engine.Route.Constraint(tag, verify)
 }
 
 // GetConfig 获取 Aurora 配置实例 对配置文件内容的读取都是协程安全的
@@ -225,7 +225,7 @@ func (engine *Engine) Root() string {
 // 通过 该方法可以重新设置视图解析的逻辑处理，或者使用其他第三方的视图处理
 // 现在的试图处理器处理方式比较局限，后续根据开发者需求进一步调整
 func (engine *Engine) ViewHandle(v web.ViewHandle) {
-	engine.router.DefaultView = v
+	engine.Route.DefaultView = v
 }
 
 func ErrorMsg(err error, msg ...string) {
@@ -241,9 +241,9 @@ func ErrorMsg(err error, msg ...string) {
 // Run 启动服务器
 func (engine *Engine) run() error {
 	engine.server.BaseContext = engine.baseContext //配置 上下文对象属性
-	engine.router.DefaultView = web.View           //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
-	engine.server.Handler = engine.router          //设置默认路由器
-	engine.router.LoadCache()                      //加载接口
+	engine.Route.DefaultView = web.View            //初始化使用默认视图解析,aurora的视图解析是一个简单的实现，可以通过修改 a.Router.DefaultView 实现自定义的试图处理，框架最终调用此方法返回页面响应
+	engine.server.Handler = engine.Route           //设置默认路由器
+	engine.Route.LoadCache()                       //加载接口
 	var p, certFile, keyFile string
 	if engine.config != nil {
 		p = engine.config.GetString("aurora.server.port")
