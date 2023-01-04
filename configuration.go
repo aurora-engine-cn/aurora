@@ -71,6 +71,6 @@ func MaxMultipartMemory(size int64) Option {
 // Static web 静态资源配置
 func Static(fs embed.FS) Option {
 	return func(engine *Engine) {
-		engine.router.Static(fs)
+		engine.Route.Static(fs)
 	}
 }

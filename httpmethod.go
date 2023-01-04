@@ -33,7 +33,7 @@ func (engine *Engine) Head(url string, control any, middleware ...web.Middleware
 
 // register 通用注册器
 func (engine *Engine) register(method string, url string, control any, middleware ...web.Middleware) {
-	engine.router.Cache(method, url, control, middleware...)
+	engine.Route.Cache(method, url, control, middleware...)
 }
 
 // Group 路由分组  必须以 “/” 开头分组
@@ -49,4 +49,3 @@ func (engine *Engine) Group(url string, middleware ...web.Middleware) *Group {
 		middleware: middleware,
 	}
 }
-

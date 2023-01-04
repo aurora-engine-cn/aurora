@@ -304,6 +304,7 @@ func (engine *Engine) start() {
 }
 
 // injection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
+// 主要处理控制器上面的 tag 装配 配置项等操作
 func (engine *Engine) injection() {
 
 	// 获取容器中的主缓存

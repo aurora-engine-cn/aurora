@@ -1,7 +1,7 @@
 package route
 
 type element struct {
-	value *node
+	value *Node
 	next  *element
 }
 
@@ -25,7 +25,7 @@ func (qe *queue) next() *element {
 	}
 }
 
-func (qe *queue) en(value *node) {
+func (qe *queue) en(value *Node) {
 	if qe.head == nil {
 		e := &element{value: value, next: nil}
 		qe.end = e

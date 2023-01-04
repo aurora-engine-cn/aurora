@@ -38,7 +38,7 @@ func useMiddleware(middleware any) useOption {
 		if m, b := middleware.(web.Middleware); !b {
 			return
 		} else {
-			engine.router.Use(m)
+			engine.Route.Use(m)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func useServe(server any) useOption {
 func useRecover(Recover any) useOption {
 	return func(engine *Engine) {
 		if recovers, b := Recover.(web.Recover); b {
-			engine.router.Recover(recovers)
+			engine.Route.Recover(recovers)
 		}
 	}
 }
