@@ -77,6 +77,7 @@ type Route interface {
 // Router Aurora 核心路由器
 type Router struct {
 	web.Log
+	defaultMux         Route
 	Recovers           web.Recover                  // 错误捕捉
 	MaxMultipartMemory int64                        // 文件上传大小
 	Root               string                       // 项目根目录
@@ -105,6 +106,7 @@ func New() *Router {
 	}
 	router.Mux = &sync.Mutex{}
 	router.Constraints = map[string]web.Verify{}
+	router.defaultMux = router
 	return router
 }
 
@@ -157,6 +159,11 @@ func (router *Router) Static(fs embed.FS) {
 
 func (router *Router) FileServer(path string) {
 	router.FileService = path
+}
+
+// DefaultRoute 使用自定义 路由规则 需要实现 Route 接口
+func (router *Router) DefaultRoute(route Route) {
+	router.defaultMux = route
 }
 
 // LoadCache 加载缓存中的接口进行注册到路由
@@ -538,7 +545,7 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
 	}
-	c, u, args := router.bfs(router.Tree[method], path)
+	c, u, args := router.defaultMux.Search(router.Tree[method], path)
 	if c == nil {
 		http.NotFound(rw, req)
 		return nil, nil, nil, nil
@@ -546,8 +553,8 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 	return c, u, args, ctx
 }
 
-// 路由树查询
-func (router *Router) bfs(root *Node, path string) (*Node, []string, map[string]any) {
+// Search 路由树查询
+func (router *Router) Search(root *Node, path string) (*Node, []string, map[string]any) {
 	var next *element
 	var n *Node
 	q := queue{}
