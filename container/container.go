@@ -213,11 +213,11 @@ func DepKey(filed reflect.StructField) (string, bool) {
 	check := true
 	switch filed.Type.Kind() {
 	case reflect.Interface:
-		// 如果字段是 接口类型 我们读取 impl 属性，impl 属性代表这个接口需要一个什么样的实现体，impl 也必须是 容器中可寻找到的属性
+		// 如果字段是 接口类型 我们读取 ref 属性，ref 属性代表这个接口需要一个什么样的实现体，ref 也必须是 容器中可寻找到的属性
 		if r, b := filed.Tag.Lookup("ref"); b && r != "" {
 			depKey = r
 		} else {
-			// 没有 impl tag 则用字段名进行匹配
+			// 没有 ref tag 则用字段名进行匹配
 			depKey = filed.Name
 			check = false
 		}
