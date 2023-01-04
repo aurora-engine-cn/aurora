@@ -85,7 +85,7 @@ type Router struct {
 	DefaultView        web.ViewHandle               // 默认视图处理器，初始化采用 web包 的函数进行渲染
 	Intrinsic          map[string]web.Variate       // 自定义系统参 初始化来自 Engine
 	config             web.Config                   // 配置实例，读取配置文件
-	Tree               map[string]*node             // 路由树根节点
+	Tree               map[string]*Node             // 路由树根节点
 	Mux                *sync.Mutex                  // 注册路由并发锁
 }
 
@@ -193,12 +193,12 @@ func (router *Router) Register(method, path string, control any, middleware ...w
 	defer router.Mux.Unlock()
 	//初始化路由树
 	if router.Tree == nil {
-		router.Tree = make(map[string]*node)
+		router.Tree = make(map[string]*Node)
 	}
 	if _, ok := router.Tree[method]; !ok {
 		//初始化 请求类型根
 		//初始化根路径,此处是更改 路径注册中的一些bug 而添加，由于 /路径注册的顺序导致了一些意想不到的bug, 特殊情况下 /aa  /a / 等顺序会导致其它两个出现错误
-		router.Tree[method] = &node{Path: "/"}
+		router.Tree[method] = &Node{Path: "/"}
 	}
 	//拿到根路径
 	root := router.Tree[method]
@@ -209,7 +209,7 @@ func (router *Router) Register(method, path string, control any, middleware ...w
 // method 指定请求类型，root 根路径，Path和fun 被添加的路径和处理函数，path携带路径副本添加过程中不会有任何操作仅用于日志处理
 // method: 请求类型(日志相关参数)
 // path: 插入的路径(日志相关参数)
-func (router *Router) add(method string, root *node, Path string, path string, fun any, middleware ...web.Middleware) {
+func (router *Router) add(method string, root *Node, Path string, path string, fun any, middleware ...web.Middleware) {
 	var l string
 	var nodeType int
 	vf := reflect.ValueOf(fun)
@@ -276,7 +276,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 			} else {
 				//添加子节点
 				if root.Child == nil {
-					root.Child = make([]*node, 0)
+					root.Child = make([]*Node, 0)
 				}
 				if len(root.Child) > 0 {
 					//如果存储的路径是REST API 检索 当前子节点是否存有路径，存有路径则为冲突
@@ -289,7 +289,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 						}
 					}
 				}
-				n := &node{
+				n := &Node{
 					Path:       c,
 					FullPath:   path,
 					Count:      strings.Count(path, "/"),
@@ -324,7 +324,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 			} else {
 				//添加子节点
 				if root.Child == nil {
-					root.Child = make([]*node, 0)
+					root.Child = make([]*Node, 0)
 				}
 				if len(root.Child) > 0 {
 					//如果存储的路径是REST API 需要检索当前子节点是否存有路径，存有路径则为冲突
@@ -336,9 +336,9 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 					}
 				}
 				tempChild := root.Child       //保存要一起分裂的子节点
-				root.Child = make([]*node, 0) //清空当前子节点  root.Child=root.Child[:0]无法清空存在bug ，直接分配保险
+				root.Child = make([]*Node, 0) //清空当前子节点  root.Child=root.Child[:0]无法清空存在bug ，直接分配保险
 				root.Child = append(root.Child,
-					&node{
+					&Node{
 						Path:       c,
 						FullPath:   root.FullPath,
 						NodeType:   root.NodeType,
@@ -371,7 +371,7 @@ func (router *Router) add(method string, root *node, Path string, path string, f
 // root: 根合并相关参数
 // Path: 根合并相关参数
 // fun: 根合并相关参数
-func (router *Router) merge(method string, root *node, Path string, path string, fun interface{}, middleware ...web.Middleware) bool {
+func (router *Router) merge(method string, root *Node, Path string, path string, fun interface{}, middleware ...web.Middleware) bool {
 	var nodeType int
 	//处理反射
 	vf := reflect.ValueOf(fun)
@@ -392,14 +392,14 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 		ch1 := root.Path[pl:]
 		ch2 := Path[pl:]
 		if root.Child == nil {
-			root.Child = make([]*node, 0)
+			root.Child = make([]*Node, 0)
 		}
 		if ch1 != "" {
 			//ch1 本节点发生分裂 把处理函数也分裂 然后把当前的handler 置空,分裂的子节点也应该按照原有的顺序保留，分裂下去
 			chChild := root.Child
-			root.Child = make([]*node, 0) //重新分配
+			root.Child = make([]*Node, 0) //重新分配
 			root.Child = append(root.Child,
-				&node{
+				&Node{
 					Path:       ch1,
 					FullPath:   root.FullPath,
 					NodeType:   root.NodeType,
@@ -436,7 +436,7 @@ func (router *Router) merge(method string, root *node, Path string, path string,
 					}
 				}
 			}
-			n := &node{
+			n := &Node{
 				Path:       ch2,
 				FullPath:   path,
 				Count:      strings.Count(path, "/"),
@@ -501,7 +501,7 @@ func (router *Router) findPublicRoot(method, p1, p2, path string) string {
 // urlRouter 检索指定的path路由
 // method 请求类型，path 查询路径，rw，req http生成的请求响应,
 // ctx 中间件请求上下文参数
-func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx web.Context) (*node, []string, map[string]any, web.Context) {
+func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req *http.Request, ctx web.Context) (*Node, []string, map[string]any, web.Context) {
 	if ctx == nil {
 		ctx = make(web.Context)
 		ctx[request] = req
@@ -540,9 +540,9 @@ func (router *Router) urlRouter(method, path string, rw http.ResponseWriter, req
 }
 
 // 路由树查询
-func (router *Router) bfs(root *node, path string) (*node, []string, map[string]any) {
+func (router *Router) bfs(root *Node, path string) (*Node, []string, map[string]any) {
 	var next *element
-	var n *node
+	var n *Node
 	q := queue{}
 	q.en(root)
 walk:
@@ -587,7 +587,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // 请求处理
-func (router *Router) handle(c *node, u []string, args map[string]any, rw http.ResponseWriter, req *http.Request, ctx web.Context) {
+func (router *Router) handle(c *Node, u []string, args map[string]any, rw http.ResponseWriter, req *http.Request, ctx web.Context) {
 	proxy := router.ProxyPool.Get().(*Proxy)
 	proxy.Router = router
 	proxy.Rew = rw
@@ -690,7 +690,7 @@ func checkRESTFul(url string) error {
 // analysisRESTFul 解析路径参数
 // n 路由节点
 // mapping 前端请求路径
-func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{}) {
+func analysisRESTFul(n *Node, mapping string) ([]string, map[string]interface{}) {
 	FullPath := n.FullPath
 	reg := regexp.MustCompile(`{*[a-z]*[A-Z]*\d*}*`)
 	req := reg.FindAll([]byte(mapping), -1)
@@ -719,7 +719,7 @@ func analysisRESTFul(n *node, mapping string) ([]string, map[string]interface{})
 // RESTFul 解析路径参数
 // n 路由节点
 // mapping 前端请求路径
-func RESTFul(n *node, mapping string) ([]string, map[string]any) {
+func RESTFul(n *Node, mapping string) ([]string, map[string]any) {
 	FullPath := n.FullPath
 	ReqPath := mapping
 	urls := make([]string, 0)

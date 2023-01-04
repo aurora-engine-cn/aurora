@@ -51,8 +51,13 @@ func (proxy *Proxy) start() {
 	}
 	// 请求参数解析
 	c.analysisInput(proxy.Req)
+
+	// before 拦截器
+
 	// 执行请求方法
 	proxy.values = c.invoke()
+
+	// after 拦截器
 
 end: // end 执行 结果处理，主要方便 在中间件中发生中断，设置响应策略
 	// 判断防止中间件误用中断 并且放行 如果处理器执行了 中断将失效
