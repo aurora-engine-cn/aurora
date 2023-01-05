@@ -7,7 +7,7 @@ import (
 )
 
 /*
-group 路由分组
+Group 路由分组
 初始化的 分组变量不会携带全局的Use
 group 可以设定局部的全局Use
 */
