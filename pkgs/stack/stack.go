@@ -8,7 +8,7 @@ type Stack[T any] struct {
 	size int
 }
 
-func New[T comparable]() *Stack[T] {
+func New[T any]() *Stack[T] {
 	return new(Stack[T])
 }
 
