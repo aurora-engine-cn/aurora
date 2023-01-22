@@ -3,6 +3,7 @@ package example
 import (
 	"fmt"
 	"gitee.com/aurora-engine/aurora"
+	"github.com/gin-gonic/gin"
 	"testing"
 )
 
@@ -15,5 +16,5 @@ func TestWebServer(t *testing.T) {
 }
 
 func TestGin(t *testing.T) {
-
+	gin.New()
 }
