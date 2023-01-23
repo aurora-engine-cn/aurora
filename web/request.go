@@ -1,5 +1,7 @@
 package web
 
+import "net/http"
+
 type Request interface {
 	GetHeader(string) string
 
@@ -18,4 +20,8 @@ type Request interface {
 	GetBools(string) []bool
 
 	Post() any
+}
+
+type Req struct {
+	http.Request
 }
