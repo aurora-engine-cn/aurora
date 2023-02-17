@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -132,7 +131,6 @@ func NewEngine() *Engine {
 	logs.Out = os.Stdout
 	engine.Log = logs //初始化日志
 	engine.printBanner()
-	engine.Info(fmt.Sprintf("golang version :%1s", runtime.Version()))
 	// 初始化 Use 配置
 	key := ""
 	var middleware web.Middleware
@@ -376,7 +374,6 @@ func (engine *Engine) viperConfig() {
 
 	// 加载基础配置
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
-		engine.Info("the configuration file is loaded successfully.")
 		// 读取web服务端口号配置
 		port := engine.config.GetString("aurora.app.port")
 		if port != "" {
@@ -392,12 +389,10 @@ func (engine *Engine) viperConfig() {
 		// 读取文件服务配置
 		p = engine.config.GetString("aurora.app.file")
 		engine.fileService = p
-		engine.Info(fmt.Sprintf("app static resource root directory:%1s", engine.resource))
 		// 读取服务名称
 		name := engine.config.GetString("aurora.application.name")
 		if name != "" {
 			engine.name = name
-			engine.Info("the service name is " + engine.name)
 		}
 	}
 }

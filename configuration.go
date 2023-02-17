@@ -18,6 +18,7 @@ type Option func(*Engine)
 func Logs(log web.Log) Option {
 	return func(engine *Engine) {
 		engine.Log = log
+		engine.Route.Log = log
 	}
 }
 
