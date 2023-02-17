@@ -45,7 +45,7 @@ func init() {
 	//设置viper读取json格式的配置
 	v.SetConfigType("json")
 	err := v.ReadConfig(bytes.NewBuffer(static))
-	ErrorMsg(err, "failed to import static resource header information requested by the server")
+	ErrorMsg(err, "failed to import static resource header information requested by the app")
 	s := v.GetStringMapString("type")
 	ResourceMapType = s
 }

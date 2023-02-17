@@ -138,13 +138,13 @@ import (
 //// 生成当前 app 服务注册信息
 //func (engine *Engine) getAgentServiceRegistration() *api.AgentServiceRegistration {
 //	// 读取 服务 名称
-//	name := engine.config.GetString("aurora.server.name")
+//	name := engine.config.GetString("aurora.app.name")
 //
 //	// 读取 服务 ip地址
-//	host := engine.config.GetString("aurora.server.host")
+//	host := engine.config.GetString("aurora.app.host")
 //
 //	// 读取 服务 端口
-//	port := engine.config.GetString("aurora.server.port")
+//	port := engine.config.GetString("aurora.app.port")
 //
 //	atoi, err := strconv.Atoi(port)
 //	if err != nil {
@@ -176,7 +176,7 @@ import (
 //	// 读取 服务超时时间
 //	timeout := engine.config.GetString("aurora.consul.service.check.timeout")
 //
-//	checkName := engine.config.GetString("aurora.server.name")
+//	checkName := engine.config.GetString("aurora.app.name")
 //
 //	// 读取检查名称
 //	if name := engine.config.GetString("aurora.consul.service.check.name"); name == "" {
@@ -187,13 +187,13 @@ import (
 //	}
 //
 //	// 读取 服务 名称
-//	name := engine.config.GetString("aurora.server.name")
+//	name := engine.config.GetString("aurora.app.name")
 //
 //	// 读取 服务 ip地址
-//	host := engine.config.GetString("aurora.server.host")
+//	host := engine.config.GetString("aurora.app.host")
 //
 //	// 读取 服务 端口
-//	port := engine.config.GetString("aurora.server.port")
+//	port := engine.config.GetString("aurora.app.port")
 //
 //	// 生成检查ID
 //	checkId := fmt.Sprintf("Service:%s-%s:%s", name, host, port)
@@ -235,20 +235,20 @@ import (
 //		}
 //	}
 //	// 读取 服务 名称
-//	if name := engine.config.GetString("aurora.server.name"); name == "" {
-//		return false, errors.New("no service name is configured, please check the configuration file configuration item 'aurora.server.name'")
+//	if name := engine.config.GetString("aurora.app.name"); name == "" {
+//		return false, errors.New("no service name is configured, please check the configuration file configuration item 'aurora.app.name'")
 //	}
 //
 //	// 检查 端口号
 //	// 读取 服务 端口
-//	if port := engine.config.GetString("aurora.server.port"); port == "" {
-//		return false, errors.New("no service port is configured, please check the configuration file configuration item 'aurora.server.port'")
+//	if port := engine.config.GetString("aurora.app.port"); port == "" {
+//		return false, errors.New("no service port is configured, please check the configuration file configuration item 'aurora.app.port'")
 //	}
 //
 //	// 检查 主机号
 //	// 读取 服务 ip地址
-//	if host := engine.config.GetString("aurora.server.host"); host == "" {
-//		return false, errors.New("no service host is configured, please check the configuration file configuration item 'aurora.server.host'")
+//	if host := engine.config.GetString("aurora.app.host"); host == "" {
+//		return false, errors.New("no service host is configured, please check the configuration file configuration item 'aurora.app.host'")
 //	}
 //
 //	return true, nil

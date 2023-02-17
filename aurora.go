@@ -150,7 +150,7 @@ func NewEngine() *Engine {
 	// log 日志
 	key = core.TypeKey(&logrus.Logger{})
 	engine.use[key] = useLogrus
-	// server
+	// app
 	key = core.TypeKey(&http.Server{})
 	engine.use[key] = useServe
 	// Recover
@@ -246,9 +246,9 @@ func (engine *Engine) run() error {
 	engine.Route.LoadCache()                       //加载接口
 	var p, certFile, keyFile string
 	if engine.config != nil {
-		p = engine.config.GetString("aurora.server.port")
-		certFile = engine.config.GetString("aurora.server.tls.certFile")
-		keyFile = engine.config.GetString("aurora.server.tls.keyFile")
+		p = engine.config.GetString("aurora.app.port")
+		certFile = engine.config.GetString("aurora.app.tls.certFile")
+		keyFile = engine.config.GetString("aurora.app.tls.keyFile")
 	}
 	if p != "" {
 		engine.port = p
@@ -378,7 +378,7 @@ func (engine *Engine) viperConfig() {
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		engine.Info("the configuration file is loaded successfully.")
 		// 读取web服务端口号配置
-		port := engine.config.GetString("aurora.server.port")
+		port := engine.config.GetString("aurora.app.port")
 		if port != "" {
 			engine.port = port
 		}
@@ -390,9 +390,9 @@ func (engine *Engine) viperConfig() {
 			engine.resource = p
 		}
 		// 读取文件服务配置
-		p = engine.config.GetString("aurora.server.file")
+		p = engine.config.GetString("aurora.app.file")
 		engine.fileService = p
-		engine.Info(fmt.Sprintf("server static resource root directory:%1s", engine.resource))
+		engine.Info(fmt.Sprintf("app static resource root directory:%1s", engine.resource))
 		// 读取服务名称
 		name := engine.config.GetString("aurora.application.name")
 		if name != "" {
@@ -412,7 +412,7 @@ func (engine *Engine) baseContext(ln net.Listener) context.Context {
 	//此处的保存在后续使用可能产生bug，情况未知
 	engine.ctx = c
 	engine.cancel = f
-	engine.Info(fmt.Sprintf("the server successfully binds to the port:%s", engine.port))
+	engine.Info(fmt.Sprintf("the app successfully binds to the port:%s", engine.port))
 	return c
 }
 

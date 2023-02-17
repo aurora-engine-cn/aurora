@@ -53,14 +53,14 @@ func (server *Server) Router() {
 		rew.Header().Set(":TestHeader", "TestHeaderValue")
 	})
 
-	//server.Post("/user", func(name, age string) string {
+	//app.Post("/user", func(name, age string) string {
 	//	return ""
 	//})
-	//server.Get("/user/{id}", func(id string) string {
+	//app.Get("/user/{id}", func(id string) string {
 	//	return id
 	//})
 	//
-	//pprofs := server.Group("/debug")
+	//pprofs := app.Group("/debug")
 	//pprofs.Get("/pprof", pprof.Index)
 	//pprofs.Get("/pprof/cmdline", pprof.Cmdline)
 	//pprofs.Get("/pprof/profile", pprof.Profile)
