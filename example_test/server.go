@@ -36,21 +36,15 @@ func (server *Server) Server() {
 	})
 }
 
-type T func(int)
-
-func Test(a int) {
-
-}
-
-func Test2(t T) {
-
+type People struct {
+	Name string
 }
 
 func (server *Server) Router() {
 	// 添加 app 路由
 
-	server.Get("/test", func(rew http.ResponseWriter) {
-		rew.Header().Set(":TestHeader", "TestHeaderValue")
+	server.Post("/test", func(a, b float64, people People) {
+		fmt.Println(people)
 	})
 
 	//app.Post("/user", func(name, age string) string {
