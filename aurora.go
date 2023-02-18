@@ -375,7 +375,7 @@ func (engine *Engine) viperConfig() {
 	// 加载基础配置
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		// 读取web服务端口号配置
-		port := engine.config.GetString("aurora.app.port")
+		port := engine.config.GetString("aurora.application.port")
 		if port != "" {
 			engine.port = port
 		}
@@ -387,7 +387,7 @@ func (engine *Engine) viperConfig() {
 			engine.resource = p
 		}
 		// 读取文件服务配置
-		p = engine.config.GetString("aurora.app.file")
+		p = engine.config.GetString("aurora.application.file")
 		engine.fileService = p
 		// 读取服务名称
 		name := engine.config.GetString("aurora.application.name")
