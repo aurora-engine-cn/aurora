@@ -304,12 +304,11 @@ func (engine *Engine) start() {
 // injection  控制器依赖加载依赖加载,控制器的依赖加载实际在容器初始化阶段就已经完成
 // 主要处理控制器上面的 tag 装配 配置项等操作
 func (engine *Engine) injection() {
-
 	// 获取容器中的主缓存
 	Controllers := engine.space.Cache()
 	for _, c := range Controllers {
 		control := *c
-		if control.Kind() == reflect.Ptr {
+		if control.Kind() == reflect.Pointer {
 			control = control.Elem()
 		}
 		for j := 0; j < control.NumField(); j++ {
@@ -375,7 +374,7 @@ func (engine *Engine) viperConfig() {
 	// 加载基础配置
 	if engine.config != nil { //是否加载配置文件 覆盖配置项
 		// 读取web服务端口号配置
-		port := engine.config.GetString("aurora.application.port")
+		port := engine.config.GetString("aurora.server.port")
 		if port != "" {
 			engine.port = port
 		}
