@@ -194,7 +194,7 @@ func (space *Space) CacheCheck(key string, value any) (string, error) {
 		key = TypeKey(value)
 	}
 	valueOf := reflect.ValueOf(value)
-	if valueOf.Kind() != reflect.Ptr {
+	if valueOf.Kind() != reflect.Pointer {
 		return "", fmt.Errorf("'%s' is not a pointer type, please add a pointer type", key)
 	}
 	if _, b := space.mainCache[key]; b {
