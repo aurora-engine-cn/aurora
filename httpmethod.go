@@ -39,6 +39,10 @@ func (engine *Engine) register(method string, url string, control any, middlewar
 // Group 路由分组  必须以 “/” 开头分组
 // Group 和 Aurora 都有 相同的 http 方法注册
 func (engine *Engine) Group(url string, middleware ...web.Middleware) *Group {
+	// 对头部没有添加 / 的路径 自动处理
+	if !strings.HasPrefix(url, "/") {
+		url = "/" + url
+	}
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
